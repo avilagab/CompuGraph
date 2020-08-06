@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Transformaciones</title>
+        <style>
+            html, body { margin: 0; padding: 0; overflow: hidden; }
+            #info {
+                position: absolute;
+                padding: 10px;
+                width: 100%;
+                text-align: center;
+                color: #FFFFFF;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="info">
+            ÁNGULOS DE EULER (XYZ)<br />
+            Seleccionar con teclas X, Y o Z el eje de rotacion.<br />
+            Rotar con flecha arriba/abajo<br />
+        </div>
+        <script src="js/three.min.js"></script>
+        <script src="js/controls/OrbitControls.js"></script>
+        <script src='js/libs/dat.gui.min.js'></script>
+        <script>
+            var scene, aspect, camera, renderer, controls;
+            var geometry;
+            var object;
+            var startTime = Date.now();
+
+            var upArrow = false;
+            var downArrow = false;
+            var leftArrow = false;
+            var rightArrow = false;
+            var sButton = false;
+            var wButton = false;
+            var xAxis = true;
+            var yAxis = false;
+            var zAxis = false;
+
+            var angleX = 0;
+            var angleY = 0;
+            var angleZ = 0;
+
+            init();
+            animate();
+
+            function init() {
+                scene = new THREE.Scene();
+                aspect = window.innerWidth / window.innerHeight;
+                camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+                //EVENTOS DE TECLADO
+
+                var onKeyDown = function (event) {
+                    switch (event.keyCode) {
+                        case 38: // Y POSITIVE - UP ARROW
+                            upArrow = true;
+                            break;
+                        case 40: // Y NEGATIVE - DOWN ARROW
+                            downArrow = true;
+                            break;
+
+                        case 88: // SELECCIONAR EJE X DE ROTACION
+                            xAxis = true;
+                            yAxis = false;
+                            zAxis = false;
+                            break;
+                        case 89: // SELECCIONAR EJE Y DE ROTACION
+                            xAxis = false;
+                            yAxis = true;
+                            zAxis = false;
+                            break;
+                        case 90: // SELECCIONAR EJE Z DE
+                            xAxis = false;
+                            yAxis = false;
+                            zAxis = true;
+                            break;
+                    }
+                };
+
+                var onKeyUp = function (event) {
+                    upArrow = false;
+                    downArrow = false;
+                };
+
+                document.addEventListener('keydown', onKeyDown, false);
+                document.addEventListener('keyup', onKeyUp, false);
+
+                //ELEMENTOS DE ESCENA
+
+                var size = 10;
+                var arrowSize = 1;
+                var divisions = size;
+                var origin = new THREE.Vector3(0, 0, 0);
+                var x = new THREE.Vector3(1, 0, 0);
+                var y = new THREE.Vector3(0, 1, 0);
+                var z = new THREE.Vector3(0, 0, 1);
+                var color1 = new THREE.Color(0xFFFFFF);
+                var color2 = new THREE.Color(0x333333);
+                var colorR = new THREE.Color(0xAA0000);
+                var colorG = new THREE.Color(0x00AA00);
+                var colorB = new THREE.Color(0x0000AA);
+                var colorRd = new THREE.Color(0xAA6666);
+                var colorGd = new THREE.Color(0x66AA66);
+                var colorBd = new THREE.Color(0x6666AA);
+
+                //CREAR LAS GRILLAS PARA EL ESCENARIO
+                var axesHelper = new THREE.AxesHelper(size);
+                var gridHelperXY = new THREE.GridHelper(size, divisions, color1, color1);
+                var gridHelperXZ = new THREE.GridHelper(size, divisions, color2, color2);
+                var gridHelperYZ = new THREE.GridHelper(size, divisions, color2, color2);
+
+                //ROTARLAS PARA QUE QUEDEN EN EL ESPACIO ADECUADO
+                gridHelperXY.rotateOnWorldAxis(x, THREE.Math.degToRad(90));
+                gridHelperXZ.rotateOnWorldAxis(y, THREE.Math.degToRad(90));
+                gridHelperYZ.rotateOnWorldAxis(z, THREE.Math.degToRad(90));
+
+                //CREAR LAS FLECHAS QUE INDICAN LOS EJES DE COORDENADAS 3D
+                var arrowX = new THREE.ArrowHelper(x, origin, arrowSize, colorR);
+                var arrowY = new THREE.ArrowHelper(y, origin, arrowSize, colorG);
+                var arrowZ = new THREE.ArrowHelper(z, origin, arrowSize, colorB);
+
+                //CREAR LAS GEOMETRÍAS
+                geometry = new THREE.BoxGeometry(1, 1, 1);
+                for (var i = 0; i < geometry.faces.length; i++) {
+                    switch (i) {
+                        case 0: case 1: geometry.faces[i].color = colorRd; break;
+                        case 2: case 3: geometry.faces[i].color = colorRd; break;
+                        case 4: case 5: geometry.faces[i].color = colorGd; break;
+                        case 6: case 7: geometry.faces[i].color = colorGd; break;
+                        case 8: case 9: geometry.faces[i].color = colorBd; break;
+                        case 10: case 11: geometry.faces[i].color = colorBd; break;
+                    }
+                }
+
+                //CREAR LOS MATERIALES
+                var material = new THREE.MeshBasicMaterial({ color: color1, vertexColors: THREE.FaceColors });
+
+                //CREAR LOS OBJETOS
+                object = new THREE.Mesh(geometry, material);
+                var axis = new THREE.AxesHelper(5);
+                object.add(axis);
+                //object.translateOnAxis( new THREE.Vector3(1, 1, 1).normalize(), 2 );
+
+                //AGREGAR A LA ESCENA
+                scene.add(gridHelperXZ);
+                scene.add(arrowX);
+                scene.add(arrowY);
+                scene.add(arrowZ);
+                scene.add(object);
+
+                //ANGULOS DE ROTACION
+                var rotationAngles = {
+                    theta1: 0,
+                    theta2: 0,
+                    theta3: 0
+                };
+
+                var rotation = function () {
+                    angleX = THREE.Math.degToRad(rotationAngles.theta1);
+                    angleY = THREE.Math.degToRad(rotationAngles.theta2);
+                    angleZ = THREE.Math.degToRad(rotationAngles.theta3);
+                    render();
+                };
+
+                var gui = new dat.GUI();
+                gui.add(rotationAngles, "theta1", -90, 90, 1).onChange(rotation);
+                gui.add(rotationAngles, "theta2", -90, 90, 1).onChange(rotation);
+                gui.add(rotationAngles, "theta3", -90, 90, 1).onChange(rotation);
+
+                rotation();
+
+                //MOVER LA CAMARA
+                camera.position.x = 5;
+                camera.position.y = 10;
+                camera.position.z = 10;
+
+                camera.lookAt(origin);
+            }
+            
+            function animate() {
+                render();
+                requestAnimationFrame(animate);
+            }
+
+            function render() {
+                var dtime = Date.now() - startTime;
+
+                console.log(angleX + " " + angleY + " " + angleZ);
+
+                var eulerRot = new THREE.Euler(angleX, angleY, angleZ, 'XYZ');
+
+                object.setRotationFromEuler(eulerRot);
+                camera.lookAt(0, 0, 0);
+                renderer.render(scene, camera);
+            }
+        </script>
+    </body>
+</html>

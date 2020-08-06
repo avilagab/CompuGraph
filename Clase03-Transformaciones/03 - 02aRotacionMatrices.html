@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Rotación - Paso a paso</title>
+        <style>
+            html, body { margin: 0; padding: 0; overflow: hidden; }
+            #info {
+                position: absolute;
+                padding: 10px;
+                width: 100%;
+                text-align: center;
+                color: #FFFFFF;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="info">ROTACIÓN<br/>
+            Usar flecha arriba para realizar, paso a paso, una rotación.<br/>
+        </div>
+    <script src="js/three.min.js"></script>
+    <script>
+		var scene, aspect, camera, renderer;
+		var startTime = Date.now();		
+		var pressed = false;
+		var upArrow = false;
+		var object;
+		var tempMatrix;
+		var flag = 0;
+		init();
+		animate();
+	
+		function init(){
+			//INICIALIZACIÓN DE LA ESCENA
+			scene = new THREE.Scene();
+			aspect = window.innerWidth / window.innerHeight;
+			camera = new THREE.PerspectiveCamera( 45, aspect, 0.1, 1000);
+			renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+				  			
+			//EVENTOS DE TECLADO
+			//Códigos de las teclas: https://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes
+			var onKeyDown = function ( event ) {
+				switch ( event.keyCode ) {
+					case 38: // TRASLADAR EN DIRECCION POSITIVA
+						upArrow = true;
+						break;
+				}
+			};	  
+		  			
+			var onKeyUp = function ( event ) {
+				switch ( event.keyCode ) {
+					case 38: // TRASLADAR EN DIRECCION POSITIVA
+						pressed = false;
+						upArrow = false;
+						break;
+				}
+			};	  	
+			
+			document.addEventListener( 'keydown', onKeyDown, false );
+			document.addEventListener( 'keyup', onKeyUp, false );
+			
+			//ELEMENTOS DE ESCENA
+			var size = 10;
+			var arrowSize = 1;
+			var divisions = size;
+			var origin = new THREE.Vector3( 0, 0, 0 );
+			var x = new THREE.Vector3( 1, 0, 0 );
+			var y = new THREE.Vector3( 0, 1, 0 );
+		  	var z = new THREE.Vector3( 0, 0, 1 );
+			var color1 = new THREE.Color( 0xFFFFFF );
+		  	var color2 = new THREE.Color( 0x333333 );
+		  	var colorR = new THREE.Color( 0xAA3333 );
+		  	var colorG = new THREE.Color( 0x33AA33 );
+		  	var colorB = new THREE.Color( 0x333366 );
+			var colorRd = new THREE.Color( 0xAA6666 );
+		  	var colorGd = new THREE.Color( 0x66AA66 );
+		  	var colorBd = new THREE.Color( 0x6666AA );
+		  
+		  	//CREAR LAS GRILLAS PARA EL ESCENARIO
+		  	var axesHelper = new THREE.AxesHelper( size );
+		  	var gridHelperXY = new THREE.GridHelper( size, divisions, color1, color1);
+		  	var gridHelperXZ = new THREE.GridHelper( size, divisions, color2, color2 );
+		  	var gridHelperYZ = new THREE.GridHelper( size, divisions, color2, color2 );
+            
+            //ROTARLAS PARA QUE QUEDEN EN EL ESPACIO ADECUADO
+            gridHelperXY.rotateOnWorldAxis ( x, THREE.Math.degToRad(90) );
+            gridHelperXZ.rotateOnWorldAxis ( y, THREE.Math.degToRad(90) );
+            gridHelperYZ.rotateOnWorldAxis ( z, THREE.Math.degToRad(90) );
+            
+            //CREAR LAS FLECHAS QUE INDICAN LOS EJES DE COORDENADAS 3D
+            var arrowX = new THREE.ArrowHelper( x, origin, arrowSize, colorR );
+            var arrowY = new THREE.ArrowHelper( y, origin, arrowSize, colorG );
+            var arrowZ = new THREE.ArrowHelper( z, origin, arrowSize, colorB );
+			
+			//CREAR LAS GEOMETRÍAS
+			var geometry = new THREE.BoxGeometry( 1, 1, 1 );
+			for ( var i = 0; i < geometry.faces.length; i ++ ) {
+				switch(i){
+					case 0: case 1: geometry.faces[ i ].color = colorRd; break;
+					case 2: case 3: geometry.faces[ i ].color = colorRd; break;
+					case 4: case 5: geometry.faces[ i ].color = colorGd; break;
+					case 6: case 7: geometry.faces[ i ].color = colorGd; break;
+					case 8: case 9: geometry.faces[ i ].color = colorBd; break;
+					case 10: case 11: geometry.faces[ i ].color = colorBd; break;
+				}				
+			}
+             
+			//CREAR LOS MATERIALES
+            var material = new THREE.MeshBasicMaterial( { color: color1, vertexColors: THREE.FaceColors } );
+			
+			//CREAR LOS OBJETOS
+			object  = new THREE.Mesh( geometry, material );
+			
+			object.matrixAutoUpdate = false;
+			
+			object.matrix.makeTranslation( 3, 0, 2 );
+					
+		  	//AGREGAR A LA ESCENA
+            scene.add( gridHelperXZ );
+		  	scene.add( arrowX );	
+		  	scene.add( arrowY );	
+		  	scene.add( arrowZ );	
+			scene.add( object );
+			
+			//MOVER LA CÁMARA
+			camera.position.x = 5;
+			camera.position.y = 3;	 
+		  	camera.position.z = 7;			
+		  	camera.lookAt( origin );
+			
+			renderer.render( scene, camera );
+			}
+    
+    function animate() {
+        render();
+        requestAnimationFrame( animate );
+    }
+    
+    function render(){
+        var dtime = Date.now()-startTime;
+		var tx=0, ty=0, tz=0;
+		if(upArrow && !pressed){
+			pressed = true;
+			switch(flag){
+				case 0: flag = 1; 
+					tempMatrix = new THREE.Matrix4();
+					tempMatrix.copyPosition( object.matrix );
+					object.applyMatrix( new THREE.Matrix4().getInverse( tempMatrix ) );					
+				break;
+				case 1: flag = 2; 
+					object.applyMatrix( new THREE.Matrix4().makeRotationY( 30*Math.PI/180 ) );
+				break;
+				case 2: flag = 0; 
+					object.applyMatrix( tempMatrix );
+				break;
+			}
+		}
+			
+		//object.elementsNeedUpdate = true;	//Avisar que la matriz del objeto ha cambiado
+        camera.lookAt( 0, 0, 0 );
+        renderer.render( scene, camera );
+    }
+    </script>
+  </body>
+</html>

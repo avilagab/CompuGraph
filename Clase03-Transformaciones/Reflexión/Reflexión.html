@@ -1,0 +1,191 @@
+ <!DOCTYPE html>
+<html>
+  <head>
+    <title>Reflexión</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+	  #info {
+                position: absolute;
+                padding: 10px;
+                width: 100%;
+                text-align: center;
+                color: #0095b1;
+            }
+    </style>
+  </head>
+  <body>
+  <div id="info">Juan David Casas <br/>
+            Martín Rodríguez Albarracín<br/>
+            Sergio Benítez Urrea<br/>
+        </div>
+    <script src="js/three.js"></script>
+    <script src="js/controls/OrbitControls.js"></script>
+    <script src='js/libs/dat.gui.min.js'></script>
+    <script>
+		var scene, aspect, camera, camera2, renderer, controls;
+        var mapWidth = 320, mapHeight = 240;
+        var w = window.innerWidth, h = window.innerHeight;
+        var frustumSize = 5;
+		var startTime = Date.now();
+		
+		init();
+		animate();
+	
+		function init(){
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color( 0xAAAAAA );
+			aspect = window.innerWidth / window.innerHeight;
+			camera = new THREE.PerspectiveCamera( 45, aspect, 0.1, 1000);
+			renderer = new THREE.WebGLRenderer({antialias: true});
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+			controls = new THREE.OrbitControls( camera, renderer.domElement );
+            
+			var size = 10;
+			var arrowSize = 1;
+			var divisions = size;
+			var origin = new THREE.Vector3( 0, 0, 0 );
+			var x = new THREE.Vector3( 1, 0, 0 );
+			var y = new THREE.Vector3( 0, 1, 0 );
+		  	var z = new THREE.Vector3( 0, 0, 1 );
+			var color1 = new THREE.Color( 0xFFFFFF );
+		  	var color2 = new THREE.Color( 0x333333 );
+		  	var colorR = new THREE.Color( 0xAA3333 );
+		  	var colorG = new THREE.Color( 0x33AA33 );
+		  	var colorB = new THREE.Color( 0x333366 );
+		  
+		  	//CREAR LAS GRILLAS PARA EL ESCENARIO
+		  	var axesHelper = new THREE.AxesHelper( size );
+		  	var gridHelperXY = new THREE.GridHelper( size, divisions, color1, color1);
+		  	var gridHelperXZ = new THREE.GridHelper( size, divisions, color2, color2 );
+		  	var gridHelperYZ = new THREE.GridHelper( size, divisions, color2, color2 );
+            
+            //ROTARLAS PARA QUE QUEDEN EN EL ESPACIO ADECUADO
+            gridHelperXY.rotateOnWorldAxis ( x, THREE.Math.degToRad(90) );
+            gridHelperXZ.rotateOnWorldAxis ( y, THREE.Math.degToRad(90) );
+            gridHelperYZ.rotateOnWorldAxis ( z, THREE.Math.degToRad(90) );
+            
+            //CREAR LAS FLECHAS QUE INDICAN LOS EJES DE COORDENADAS 3D
+            var arrowX = new THREE.ArrowHelper( x, origin, arrowSize, colorR );
+            var arrowY = new THREE.ArrowHelper( y, origin, arrowSize, colorG );
+            var arrowZ = new THREE.ArrowHelper( z, origin, arrowSize, colorB );
+            
+            //CREAR ILUMINACIÓN
+            var ambient = new THREE.AmbientLight( 0xffffff, 2 );
+            scene.add( ambient );
+            
+            var pointLight = new THREE.PointLight( 0xffffff, 1, 100 );
+            pointLight.position.set( 5, 5, -5 );
+            scene.add( pointLight );
+            
+			//CREAR LAS GEOMETRÍAS
+			//Far plane
+			var width = 16.0;
+			var height = 9.0;
+			var FOV = 45.0;			//Ángulo de apertura
+			var sinFOV = Math.sin((FOV/2.0)*Math.PI/180.0);
+			var aR = width/height;	//AspectRatio
+			var nearZ = 1;
+			var farZ = 10;
+			var COA = new THREE.Vector3(-5,2,0);
+			var planeGeometry = new THREE.PlaneGeometry(width, height);
+            
+            camera2 = new THREE.OrthographicCamera( frustumSize * aspect / - 2,  //left — Camera frustum left plane.
+                                                    frustumSize * aspect / 2,    //right — Camera frustum right plane.
+                                                    frustumSize / 2,             //top — Camera frustum top plane.
+                                                    frustumSize / - 2,           //bottom — Camera frustum bottom plane.
+                                                    1,                           //near — Camera frustum near plane.
+                                                    10 );
+            var helper = new THREE.CameraHelper( camera2 );
+            scene.add( helper );
+			
+			//CUBO EN EL ESPACIO
+			var boxGeometry = new THREE.BoxGeometry(1,2,1);
+			var trapecio = new THREE.CylinderGeometry( 0.8 / Math.sqrt( 2 ), 1 / Math.sqrt( 2 ), 1, 4, 1 );
+			trapecio.rotateY( Math.PI / 4 );
+			trapecio.rotateZ( Math.PI /2 );
+			
+				
+            //CREAR LOS MATERIALES
+            var material1 = new THREE.MeshStandardMaterial( { color: 0xAA3333, metalness: 0.5, roughness: 0.1 } );
+          
+			
+			
+            scene.add( arrowX );
+            scene.add( arrowY );
+            scene.add( arrowZ );
+			
+			var objeto1 = new THREE.Mesh (trapecio,material1);
+			var objeto2 = new THREE.Mesh (trapecio,material1)
+			
+			scene.add(objeto1 );
+			scene.add(objeto2);
+			objeto1.translateX(2);
+			objeto1.translateZ(-4);
+	
+	var m = new THREE.Matrix4();
+
+     m.set( 1, 0, 0, -2,
+            0, 1, 0, 0,
+            0, 0, 1, -5,
+            0, 0, 0, 1 );
+			
+			
+			
+			objeto2.applyMatrix(new THREE.Matrix4().makeScale(-1, 1, 1));
+			objeto2.applyMatrix(m);
+           
+			
+			camera.position.x = 5;
+			camera.position.y = 5;
+		  	camera.position.z = 10;
+			
+		  	camera.lookAt( origin );
+            
+            var effectController  = {
+                frustum: 6,
+                nearPlane: 1,
+                farPlane: 10,
+                aspect: w/h,
+            };
+            
+            var matChanger = function( ) {
+                frustumSize = effectController.frustum;
+                aspect = effectController.aspect;
+                //camera2.frustum = frustumSize;
+                camera2.left   = - frustumSize * aspect / 2;
+                camera2.right  =   frustumSize * aspect / 2;
+                camera2.top    =   frustumSize / 2;
+                camera2.bottom = - frustumSize / 2;
+                camera2.near = effectController.nearPlane;
+                camera2.far = effectController.farPlane;
+
+                camera2.updateProjectionMatrix();
+                helper.update();
+            };
+            
+            var gui = new dat.GUI();
+            gui.add( effectController, "frustum", 1, 100, 1 ).onChange( matChanger );
+            gui.add( effectController, "nearPlane", 0.1, 100, 0.1 ).onChange( matChanger );
+            gui.add( effectController, "farPlane", 0.1, 100, 1 ).onChange( matChanger );
+            gui.add( effectController, "aspect", 0.1, 10, 0.001 ).onChange( matChanger );
+            
+            matChanger();
+		}
+		function animate() {
+			requestAnimationFrame( animate );
+			controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
+			render();
+		}
+        function render() {
+            renderer.setViewport( 0, 0, w, h );
+            renderer.setScissor( 0, 0, w, h );
+            renderer.render( scene, camera );
+            renderer.setViewport( 10, 10, mapWidth, mapHeight );
+            renderer.setScissor( 10, 10, mapWidth, mapHeight );
+            renderer.setScissorTest( true );
+            renderer.render( scene, camera2 );
+		}
+    </script>
+  </body>
+</html>
