@@ -1,0 +1,58 @@
+ <!DOCTYPE html>
+<html>
+  <head>
+    <title>Sistema de coordenadas</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="js/three.min.js"></script>
+    <script>
+		//INICIALIZACIÓN DE LA ESCENA 
+        var scene = new THREE.Scene();
+        var aspect = window.innerWidth / window.innerHeight;
+        var camera = new THREE.PerspectiveCamera( 45, aspect, 0.1, 1000);
+        var renderer = new THREE.WebGLRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        document.body.appendChild( renderer.domElement );
+        
+		//Variables para el tamaño de los elementos
+        var size = 10;
+		var arrowSize = 1;
+		var divisions = size;
+		
+		//Se crean 3 vectores, uno en el origen, y otros 3, vectores unitarios en la dirección x, y y z respectivamente.
+		var origin = new THREE.Vector3( 0, 0, 0 );
+		var x = new THREE.Vector3( 1, 0, 0 );
+		var y = new THREE.Vector3( 0, 1, 0 );
+		var z = new THREE.Vector3( 0, 0, 1 );
+		//Se crean las variables de color, para ser usadas en la creación de los elementos
+		var color1 = new THREE.Color( 0xFFFFFF );
+		var colorR = new THREE.Color( 0xAA3333 );
+		var colorG = new THREE.Color( 0x33AA33 );
+		var colorB = new THREE.Color( 0x333366 );
+		
+		//CREAR LAS GRILLAS
+		var gridHelperXY = new THREE.GridHelper( size, divisions, color1, color1);	//Se crea una grilla de tamaño 10 con 10 divisiones. Por defecto se crean en XZ.
+		gridHelperXY.rotateOnWorldAxis( x, THREE.Math.degToRad(90) );				//Rotar la grilla para que quede ubicada en el plano XY, la rotación se hace sobre el eje X
+
+		//CREAR LAS FLECHAS EN EL ORIGEN
+		var arrowX = new THREE.ArrowHelper( x, origin, arrowSize, colorR );			//Una flecha ubicada en la dirección del eje X
+		var arrowY = new THREE.ArrowHelper( y, origin, arrowSize, colorG );			//Una flecha ubicada en la dirección del eje Y
+		
+		//SE AGERGAN LOS ELEMENTOS A LA ESCENA
+		scene.add( gridHelperXY );													//Se agrega la grilla en el plano XY
+		scene.add( arrowX );														//Se agrega la flecha en X
+		scene.add( arrowY );														//Se agrega la flecha en Y
+	
+		//SE UBICA LA CAMARA
+        camera.position.z =  5;														//Se aleja la cámara en la dirección de +Z
+		camera.lookAt( origin );													//Se pone a apuntar la cámara hacia el origen
+		
+		//RENDERIZADO
+        renderer.render( scene, camera );											//Se renderiza la escena
+		
+    </script>
+  </body>
+</html>
