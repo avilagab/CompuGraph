@@ -56,13 +56,14 @@
             //Punto
             var geoEsfera = new THREE.Geometry();
             var zTemp = 0;
-            var res = 50.0;
-            for( var i = 0; i < res; i++){
-                for( var j = 0; j < res; j++){
+            var resXY = 20.0;
+			var resZ = 20.0;
+            for( var i = 0; i < resZ; i++){
+                for( var j = 0; j < resXY; j++){
                     var punto = new THREE.Vector3();
-                    punto.x = 5 * Math.cos( ( j * 2 * Math.PI )/res) * Math.sin( ( i * Math.PI / 2 )/res) ;
-                    punto.y = 5 * Math.sin( ( j * 2 * Math.PI )/res) * Math.sin( ( i * Math.PI / 2 )/res) ;
-                    punto.z = 5 * Math.cos( ( i * Math.PI / 2 )/res) ;
+                    punto.x = 5 * Math.cos( ( j * 2 * Math.PI )/resXY) * Math.sin( ( i * Math.PI )/ resZ) ;
+                    punto.y = 5 * Math.sin( ( j * 2 * Math.PI )/resXY) * Math.sin( ( i * Math.PI )/ resZ) ;
+                    punto.z = 5 * Math.cos( ( i * Math.PI )/resZ) ;
                     geoEsfera.vertices.push( punto );
                 }
             }
