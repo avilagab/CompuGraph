@@ -1,0 +1,70 @@
+ <!DOCTYPE html>
+<html>
+  <head>
+    <title>Traslacion</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+      #info {
+          position: absolute;
+          padding: 10px;
+          width: 100%;
+          text-align: center;
+          color: #FFFFFF;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info">OPERACIONES ENTRE CUATERNIONES<br/>
+          Usar ctrl+shift+1 para visualizar en consola<br/>
+    </div>
+    <script src="js/three.min.js"></script>
+    <script>
+		var scene, aspect, camera, renderer;
+		var startTime = Date.now();		
+		var upArrow = false;
+		var downArrow = false;
+		var object;
+		init();
+		animate();
+	
+		function init(){
+			//INICIALIZACIÓN DE LA ESCENA
+			scene = new THREE.Scene();
+			aspect = window.innerWidth / window.innerHeight;
+			camera = new THREE.PerspectiveCamera( 45, aspect, 0.1, 1000);
+			renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );			
+			document.body.appendChild( renderer.domElement );
+			
+			//ROTACIÓN DE UN PUNTO, ALREDEDOR DE UN CUATERNIÓN
+			//q1 es una rotación alrededor del eje x, 90 grados
+			var q1 = new THREE.Quaternion(Math.sqrt(2)/2, 0, 0, Math.sqrt(2)/2);  	// x y z w
+			var q2 = new THREE.Quaternion( 0, 3, 2, 0);
+			var q3 = new THREE.Quaternion();
+			q3.multiplyQuaternions(q1,q2);	
+			var q1_conjugado = new THREE.Quaternion().copy(q1).conjugate();
+			
+			console.log(q1);
+			console.log(q2);
+			console.log(q3);
+			console.log(q1_conjugado);
+			q3.multiply(q1_conjugado);
+			console.log(q3);
+			
+			//OBTENER EL CUATERNIÓN DE ROTACIÓN, A PARTIR DE UN VECTOR Y UN ÁNGULO
+			var q4 = new THREE.Quaternion().setFromAxisAngle( new THREE.Vector3( 1, 0, 0 ), Math.PI / 2 );
+			console.log(q4);
+			
+			}
+    
+    function animate() {
+        render();
+        requestAnimationFrame( animate );
+    }
+    
+    function render(){
+        renderer.render( scene, camera );
+    }
+    </script>
+  </body>
+</html>

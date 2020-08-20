@@ -193,9 +193,10 @@
 
                 console.log(angleX + " " + angleY + " " + angleZ);
 
+				// Other possibilities are: 'YZX', 'ZXY', 'XZY', 'YXZ' and 'ZYX'. 
 				// XYZ: Rota teniendo en cuenta el marco de referencia local (del objeto).
 				// ZYX: Rota alrededor del marco de referencia de la escena
-                var eulerRot = new THREE.Euler(angleX, angleY, angleZ, 'ZYX');
+                var eulerRot = new THREE.Euler(angleX, angleY, angleZ, 'YZX');
 
                 object.setRotationFromEuler(eulerRot);
                 camera.lookAt(0, 0, 0);

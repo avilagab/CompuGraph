@@ -35,6 +35,8 @@
 		var yAxis = false;
 		var zAxis = false;
 		
+		var t=0;
+		
 		init();
 		animate();
 	
@@ -135,7 +137,7 @@
 			
 			//CREAR LOS OBJETOS
 			object = new THREE.Mesh( geometry, material );
-			object.translateOnAxis( new THREE.Vector3(1, 1, 1).normalize(), 2 );
+			//object.translateOnAxis( new THREE.Vector3(1, 1, 1).normalize(), 2 );
 									
 		  	//AGREGAR A LA ESCENA
             scene.add( gridHelperXZ );
@@ -158,13 +160,12 @@
     
     function render(){
         var dtime = Date.now()-startTime;
-		var t=0;
 		
 		if(upArrow) {
-			t=0.1;
+			t+=.1;
 		}
 		if(downArrow) {
-			t=-0.1;
+			t+=-.1;
 		}
 
 		//ROTACIÓN EN EJE X
@@ -179,7 +180,7 @@
 		else if (zAxis){
 			var a = new THREE.Euler(0,0,t,'XYZ');
 		}
-		object.position.applyEuler(a);
+		object.setRotationFromEuler(a);
         camera.lookAt( 0, 0, 0 );
         renderer.render( scene, camera );
     }
