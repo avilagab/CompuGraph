@@ -222,9 +222,9 @@
 		
 		//MATRIZ DE ESCALA	
 		var s = new THREE.Matrix4();
-		s.set( 	sc, 0, 0, object.position.x*(1-sc),
-				0, sc, 0, object.position.y*(1-sc), 
-				0, 0, sc, object.position.z*(1-sc),
+		s.set( 	sc, 0, 0, 0,
+				0, sc, 0, 0, 
+				0, 0, sc, 0,
 				0, 0, 0, 1	);	
 				
 		object.applyMatrix(s);
