@@ -22,6 +22,7 @@
         <script src="js/three.min.js"></script>
         <script src="js/controls/OrbitControls.js"></script>
         <script src='js/libs/dat.gui.min.js'></script>
+		<script src='js/libs/stats.min.js'></script>
         <script>
             var scene, aspect, camera, renderer, controls;
             var geometry;
@@ -37,6 +38,7 @@
             var xAxis = true;
             var yAxis = false;
             var zAxis = false;
+			var stats;
 
             var angleX = 0;
             var angleY = 0;
@@ -53,6 +55,9 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 document.body.appendChild(renderer.domElement);
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
+				
+				stats = new Stats();
+				document.body.appendChild( stats.dom );
 
                 //EVENTOS DE TECLADO
 
@@ -158,7 +163,8 @@
                 var rotationAngles = {
                     theta1: 0,
                     theta2: 0,
-                    theta3: 0
+                    theta3: 0,
+					theta4: 0
                 };
 
                 var rotation = function () {
@@ -167,11 +173,16 @@
                     angleZ = THREE.Math.degToRad(rotationAngles.theta3);
                     render();
                 };
+				
+				var rotation2 = function () {
+                    console.log(rotationAngles.theta4);
+                };
 
                 var gui = new dat.GUI();
-                gui.add(rotationAngles, "theta1", -90, 90, 1).onChange(rotation);
+                gui.add(rotationAngles, "theta1", -180, 180, .1).onChange(rotation);
                 gui.add(rotationAngles, "theta2", -90, 90, 1).onChange(rotation);
                 gui.add(rotationAngles, "theta3", -90, 90, 1).onChange(rotation);
+				gui.add(rotationAngles, "theta4", -10, 10, 1).onChange(rotation2);
 
                 rotation();
 
@@ -186,12 +197,13 @@
             function animate() {
                 render();
                 requestAnimationFrame(animate);
+				stats.update();
             }
 
             function render() {
                 var dtime = Date.now() - startTime;
 
-                console.log(angleX + " " + angleY + " " + angleZ);
+                //console.log(angleX + " " + angleY + " " + angleZ);
 
 				// Other possibilities are: 'YZX', 'ZXY', 'XZY', 'YXZ' and 'ZYX'. 
 				// XYZ: Rota teniendo en cuenta el marco de referencia local (del objeto).
