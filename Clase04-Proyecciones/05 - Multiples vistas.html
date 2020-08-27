@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
     <head>
-        <title>PERSONAJE</title>
-        <style>
+        <title>Personaje - Ejemplo</title>
+        <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=-6aaR6DTkUZhq7GmA8IhzyoZYxvBXSdz393N2rkmCahk_xTdQTaic1cuqQ3bmEnbcM5SyYR6vs8R-Pdlm2f5y5A686Dmy20KP4c8lZ9mhkZ3da-7TOKx6CFWa9G1ME3TlP5uFTXLSkNx7Y-qrCYUd0zCgMmJcEbZOhem8spX7abGn71YO6M6-vLcIs4yp0iKtMcazIyO8y8KnZPGURdKLmkH8gms9yu_EYVtPaa88zXXxSZc5SZChkK4hqrG_EAtu-saFNHCXDbK3mfSEZZzbNQQv2Ju8qraUCHSe4fkowuvC43PRKY3u9s9NQRPFGS0uTm2GCExutvDvsNKVsE-JA0c5R8c32hQPRMqCaK_PemxpkuIX1nb9rnTIXMDGi5RFTRcb0MKiNv3yf5TerqYTAYIkO5tghhxGsc4lelqLzn8hoqIoFR4tv3_ALZx3FeUKgqXH6QqIrf49yv80tmOoZHNAT0kHIPUFknd4DnrK8klFA_8A9WAXMgrOLO1yrYS27eR3-XMhphiXtv3NFQp2F5gCrWsb2sOrt5WRCoBEy3pMqwz5y2jAIHXtsfOCciE9zUelHyweiWQk5ZO-cQKrGR6FUL9SjrWTS7A9J5Zz5lQNBhl3rleVwUw86hOb8o1CW48X-5uLZ9dneg4oFqJ19EmwzXHL-0ZyeWiyiKRbSCPlh8ucbN8WneTlh9BtFi6zXaI2zviY7_F0cllpDXd1ebn4ocwqBWYUy3ehijP7uLJ3TZpTcjfNQKOqqo8MZ_tutq_fxiT0MaGhSUEIbx-Mz07RxXipmlu_6EqkN9yOBn2z5xVJJZ3Ul-g1-ozV9GbFrX2_wMRoc5EMGFRgRbgbnb_PFbzsWJmEVK_omdj90ULcVYGeshwB8epDEuInesD0XSLNsOYEeDAMfYIc0BoUNKLoxoh-SHV9IH8Q275nHbAdE7SaAddlS7Ebi31lDC5JTPyd3HfNzcniO99CEo9lm0bApyGvaMLYQfU7D_PPNHYoQN1ALwy6X7QMnQGl6nSndK9DjbwhaPk52aZE_OJIV7e3Ae5SdPw4b9Vd2qdjHWuFoqCcL5gsv6wzCs9iHmlMMkWrHx6rr4HjR-e5uLrIgP9IzAgomZY6-b_JET29fkh1D7r8kSQyVoV-L1Z8LWTFgs2jYlTGB6joF9dh8K1qjm4h0HA4KcEqf2pdaU4vsvhDhu3mZ9jlhBviQ9KZU079uuqPpBgQtQSbOpEeBiOmQ" nonce="3b2d35ef3370812a105e0f300e984a83" charset="UTF-8"></script><style>
             html, body { margin: 0; padding: 0; overflow: hidden; }
             #info {
                 position: absolute;
@@ -14,12 +14,14 @@
         </style>
     </head>
     <body>
-        <div id="info">PERSONAJE<br/>
+        <div id="info">RELACIÓN PARENT-CHILD<br/>
             Usar flecha arriba y abajo para trasladar.<br/>
             Usar flechas laterales para rotar.<br/>
         </div>
+        
     <script src="js/three.min.js"></script>
     <script>
+        
 		var scene, aspect, camera, renderer;
 		var geometry1, geometry2;
 		var hips, torso, head;
@@ -39,11 +41,80 @@
 		
 		var thetaSum=0;
 		var positivo=false;
+        
+        var container, stats;
+        var mousex=0,mousey=0;
+        var views, scene, renderer;
+        var windowWidth, windowHeight;
+        var views = [
+				{
+					left:0.3,bottom: 0,width: 0.4,height: 0.5,
+					background: new THREE.Color(0.5,0.2,0.7),
+					eye: [ 0, 20, 0],
+					up: [ 1, 0, 0 ],
+					fov: 60,
+					updateCamera: function ( camera, scene ) {
+
+					  camera.position.x =  0;
+					  camera.position.x = Math.max( Math.min( camera.position.x, 2000 ), - 2000 );
+					  camera.lookAt( scene.position );
+
+					}
+				},
+				{
+					left: 0,
+					bottom: 0,
+					width: 0.3,
+					height: 0.5,
+					background: new THREE.Color( 0x66AA66 ),
+					eye: [ 0, 20, 0 ],
+					up: [ 0,1, 0 ],
+					fov: 45,
+					updateCamera: function ( camera, scene ) {
+
+					  camera.position.y =  0;
+					  camera.lookAt( camera.position );
+
+					}
+				},
+				{
+					left: 0.7,
+					bottom: 0,
+					width: 0.3,
+					height: 0.5,
+					background: new THREE.Color( 0.5, 0.7, 0.7 ),
+					eye: [ 0, 20, 0],
+					up: [ 0, 0, 1 ],
+					fov: 60,
+					updateCamera: function ( camera, scene) {
+
+					  
+					  camera.position.z =  0;
+					  camera.lookAt( scene.position );
+
+					}
+				},
+        {
+            left: 0,bottom: 0.5,width:1,height:0.5,background: new THREE.Color( 0.2, 0.1, 0.6 ),
+					eye: [ 140, 800, 140 ],
+					up: [ 0, 1, 0],
+					fov: 60,
+					updateCamera: function ( camera, scene) {
+
+					  camera.position.y += 0.01;
+					  camera.position.z = Math.max( Math.min( camera.position.y, 1600 ), - 1600 );
+					  camera.lookAt( scene.position );
+
+					}
+        }
+			];
+
 		
 		init();
 		animate();
-	
+        
 		function init(){
+            
 			scene = new THREE.Scene();
 			aspect = window.innerWidth / window.innerHeight;
 			camera = new THREE.PerspectiveCamera( 45, aspect, 0.1, 1000);
@@ -52,7 +123,15 @@
 			document.body.appendChild( renderer.domElement );
 				  			
 			//EVENTOS DE TECLADO
-			
+			for ( var ii = 0; ii < views.length; ++ ii ) {
+
+					var view = views[ ii ];
+					var camera = new THREE.PerspectiveCamera( view.fov, window.innerWidth / window.innerHeight, 1, 10000 );
+					camera.position.fromArray( view.eye );
+					camera.up.fromArray( view.up );
+					view.camera = camera;
+
+				}
 			var onKeyDown = function ( event ) {
 				switch ( event.keyCode ) {
 					case 38: // TRASLADAR ADELANTE
@@ -179,29 +258,17 @@
 			hips = new THREE.Mesh( geometry1, material );	//CUBO
 			leftFoot = hips.clone();
 			
-			torso = new THREE.Mesh( geometry2, material ); //CILINDRO
-			leftLeg = torso.clone();
+			leftLeg = new THREE.Mesh( geometry2, material ); //CILINDRO
 			
 			leftLeg.applyMatrix( new THREE.Matrix4().makeScale(.5,2,.5) );
-			rightLeg = leftLeg.clone();
 			leftLeg.applyMatrix( new THREE.Matrix4().makeTranslation(-.5,-1,0) );
-			rightLeg.applyMatrix( new THREE.Matrix4().makeTranslation( .5,-1,0) );
-			
-			rightFoot = leftFoot.clone();
 			leftFoot.applyMatrix( new THREE.Matrix4().getInverse( leftLeg.matrix ) );
 			leftFoot.applyMatrix( new THREE.Matrix4().makeScale(.5,.5,1) );
-			rightFoot.applyMatrix( new THREE.Matrix4().getInverse( rightLeg.matrix ) );
-			rightFoot.applyMatrix( new THREE.Matrix4().makeScale(.5,.5,1) );
 			leftFoot.applyMatrix( new THREE.Matrix4().makeTranslation(-.5,-.75,0) );
-			rightFoot.applyMatrix( new THREE.Matrix4().makeTranslation(.5,-.75,0) );
-			
-			torso.applyMatrix( new THREE.Matrix4().makeTranslation( 0, 1, 0) );
 			
 			hips.add(torso);
 			hips.add(leftLeg);
 			hips.add(rightLeg);
-			leftLeg.add(leftFoot);
-			rightLeg.add(rightFoot);
 		
 		  	//AGREGAR A LA ESCENA
             scene.add( gridHelperXZ );
@@ -218,8 +285,27 @@
 		  	camera.lookAt( origin );
 			
 			renderer.render( scene, camera );
+           
 			}
-    
+    function onDocumentMouseMove( event ) {
+
+				mouseX = ( event.clientX - windowWidth / 2 );
+				mouseY = ( event.clientY - windowHeight / 2 );
+
+			}
+
+			function updateSize() {
+
+				if ( windowWidth != window.innerWidth || windowHeight != window.innerHeight ) {
+
+					windowWidth = window.innerWidth;
+					windowHeight = window.innerHeight;
+
+					renderer.setSize( windowWidth, windowHeight );
+
+				}
+
+			}
     function animate() {
         render();
         requestAnimationFrame( animate );
@@ -232,9 +318,9 @@
 		var theta=0;			//Variable para ángulo de rotacion de piernas
 		var sigma=0;			//Variable para ángulo de rotación de caderas
 		
-		if(thetaSum>=90*Math.PI/180)
+		if(thetaSum>=60*Math.PI/180)
 			positivo = false;
-		if(thetaSum<=-90*Math.PI/180)
+		if(thetaSum<=-60*Math.PI/180)
 			positivo = true;
 		
 		if(upArrow) {
@@ -301,11 +387,34 @@
 		hips.applyMatrix( tempMatrix );
 
 		leftLeg.applyMatrix(r1);
-		rightLeg.applyMatrix(r2);
-				
-        camera.lookAt( 0, 0, 0 );
-        renderer.render( scene, camera );
+        updateSize();
+
+				for ( var ii = 0; ii < views.length; ++ ii ) {
+
+					var view = views[ ii ];
+					var camera = view.camera;
+
+					view.updateCamera( camera, scene );
+
+					var left = Math.floor( windowWidth * view.left );
+					var bottom = Math.floor( windowHeight * view.bottom );
+					var width = Math.floor( windowWidth * view.width );
+					var height = Math.floor( windowHeight * view.height );
+
+					renderer.setViewport( left, bottom, width, height );
+					renderer.setScissor( left, bottom, width, height );
+					renderer.setScissorTest( true );
+					renderer.setClearColor( view.background );
+
+					camera.aspect = width / height;
+					camera.updateProjectionMatrix();
+
+					renderer.render( scene, camera );
+
+				}
     }
     </script>
+        
+
   </body>
 </html>
