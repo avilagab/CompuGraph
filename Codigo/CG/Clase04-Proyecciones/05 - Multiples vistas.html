@@ -48,11 +48,11 @@
         var windowWidth, windowHeight;
         var views = [
 				{
-					left:0.3,bottom: 0,width: 0.4,height: 0.5,
+					left:0.0,bottom: 0,width: 0.33,height: 0.5,
 					background: new THREE.Color(0.5,0.2,0.7),
 					eye: [ 0, 20, 0],
 					up: [ 1, 0, 0 ],
-					fov: 60,
+					fov: 30,
 					updateCamera: function ( camera, scene ) {
 
 					  camera.position.x =  0;
@@ -62,9 +62,9 @@
 					}
 				},
 				{
-					left: 0,
+					left: 0.33,
 					bottom: 0,
-					width: 0.3,
+					width: 0.34,
 					height: 0.5,
 					background: new THREE.Color( 0x66AA66 ),
 					eye: [ 0, 20, 0 ],
@@ -78,9 +78,9 @@
 					}
 				},
 				{
-					left: 0.7,
+					left: 0.67,
 					bottom: 0,
-					width: 0.3,
+					width: 0.33,
 					height: 0.5,
 					background: new THREE.Color( 0.5, 0.7, 0.7 ),
 					eye: [ 0, 20, 0],
@@ -119,7 +119,7 @@
 			aspect = window.innerWidth / window.innerHeight;
 			camera = new THREE.PerspectiveCamera( 45, aspect, 0.1, 1000);
 			renderer = new THREE.WebGLRenderer();
-			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setSize( window.innerWidth/2.0, window.innerHeight/2.0 );
 			document.body.appendChild( renderer.domElement );
 				  			
 			//EVENTOS DE TECLADO
@@ -296,14 +296,14 @@
 
 			function updateSize() {
 
-				if ( windowWidth != window.innerWidth || windowHeight != window.innerHeight ) {
+				//if ( windowWidth != window.innerWidth || windowHeight != window.innerHeight ) {
 
-					windowWidth = window.innerWidth;
-					windowHeight = window.innerHeight;
+					windowWidth = window.innerWidth/2.0;
+					windowHeight = window.innerHeight/2.0;
 
 					renderer.setSize( windowWidth, windowHeight );
 
-				}
+				//}
 
 			}
     function animate() {
@@ -393,6 +393,7 @@
 
 					var view = views[ ii ];
 					var camera = view.camera;
+					view.camera.position.x+=1;
 
 					view.updateCamera( camera, scene );
 
