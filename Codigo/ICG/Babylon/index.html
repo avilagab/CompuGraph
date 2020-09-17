@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8"/>
+    <title>Babylon - Getting Started</title>
+	
+	<style>
+    html, body {
+        overflow: hidden;
+        width   : 100%;
+        height  : 100%;
+        margin  : 0;
+        padding : 0;
+    }
+
+    #renderCanvas {
+        width   : 100%;
+        height  : 100%;
+        touch-action: none;
+    }
+	</style>
+	
+    <!-- Link to the last version of BabylonJS -->
+    <script src="https://preview.babylonjs.com/babylon.js"></script>
+    <!-- Link to the last version of BabylonJS loaders to enable loading filetypes such as .gltf -->
+    <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <!-- Link to pep.js to ensure pointer events work consistently in all browsers -->
+    <script src="https://code.jquery.com/pep/0.4.1/pep.js"></script>
+	
+	<!-- Link to the Ammo Plugin -->
+    <script src="https://cdn.babylonjs.com/ammo.js"></script>	
+	
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+	
+	<script>
+    window.addEventListener('DOMContentLoaded', function() {
+        var canvas = document.getElementById('renderCanvas');		
+		var engine = new BABYLON.Engine(canvas, true);
+		
+		var sphere;
+		var ground2;
+		var plane;
+		
+		var keyRight = false;
+		var keyLeft = false;				
+		var keyUp = false;
+		var keyDown = false;
+		
+		var tiempo = 0;
+		
+		var camera;
+		
+		var createScene = function() {
+			// Create a basic BJS Scene object.
+			var scene = new BABYLON.Scene(engine);
+			scene.enablePhysics(null, new BABYLON.AmmoJSPlugin());
+			var physicsEngine = scene.getPhysicsEngine();
+			
+			// Parameters: name, position, scene
+			camera = new BABYLON.FreeCamera("FreeCam", new BABYLON.Vector3(0, 0, -50), scene);
+
+			// Create a basic light, aiming 0,1,0 - meaning, to the sky.
+			var light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), scene);
+
+			// Create a built-in "sphere" shape. 
+			sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {segments:16, diameter:2}, scene);
+
+			// Move the sphere upward 1/2 of its height.
+			sphere.position.y = 2;			
+
+			// Create a built-in "ground" shape.
+			var ground = BABYLON.MeshBuilder.CreateBox('piso', {height:1, width:6, depth: 6}, scene);
+			ground.position.y = -2;			
+			
+			// Create a built-in "ground" shape.
+			ground2 = BABYLON.MeshBuilder.CreateBox('piso', {height:.5, width:3, depth: 6}, scene);
+			ground2.position.y = -2;		
+			ground2.position.x = 5;
+
+			// Add Imposters
+			sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 2, friction: 0.0, restitution: 0.3 }, scene);
+			ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, friction: 0.0, restitution: 0.0 }, scene);
+			ground2.physicsImpostor = new BABYLON.PhysicsImpostor(ground2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, friction: 0.0, restitution: 0.0 }, scene);
+			
+			plane = BABYLON.MeshBuilder.CreatePlane("plane", {width: 5, size:5, tileSize:1}, scene);
+			
+			var materialPlano = new BABYLON.StandardMaterial("wood", scene);
+			materialPlano.diffuseTexture = new BABYLON.Texture("img/redCharacter.png", scene);
+			materialPlano.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+			materialPlano.diffuseTexture.hasAlpha = true;
+			plane.material = materialPlano;
+			
+			// Return the created scene.
+			return scene;
+		}
+		
+		var scene = createScene();
+		
+		scene.onKeyboardObservable.add((kbInfo) => {
+			switch (kbInfo.type) {
+				case BABYLON.KeyboardEventTypes.KEYDOWN:
+					console.log("KEY DOWN: ", kbInfo.event.key);
+					switch(kbInfo.event.keyCode){
+						case 37: keyLeft = true; break;
+						case 38: keyUp = true; break;
+						case 39: keyRight = true; break;
+						case 40: keyDown = true; break;
+					}
+					break;
+				case BABYLON.KeyboardEventTypes.KEYUP:
+					keyRight = false;
+					keyLeft = false;
+					keyUp = false;
+					keyDown = false;
+					console.log("KEY UP: ", kbInfo.event.keyCode);
+					break;				
+			}
+		});
+		
+		engine.runRenderLoop(function() {
+			tiempo+=.01;
+			if(keyRight){
+				plane.position.x+=.1;				
+			}
+			if(keyLeft){
+				plane.position.x-=.1;
+			}
+			if(keyUp){
+				plane.position.y+=.1;
+			}
+			if(keyDown){
+				plane.position.y-=.1;
+			}
+			camera.position.x = plane.position.x;
+			camera.position.y = plane.position.y;
+			
+			ground2.position.y = 10 * Math.sin(90 * tiempo / 180); 
+			
+			if(sphere.position.y < -10){
+				console.log("HAS MUERTO");
+				sphere.position.x = 0;
+				sphere.position.y = 2;	
+			}
+			
+			scene.render();
+		});
+		
+		window.addEventListener('resize', function() {
+			engine.resize();
+		});
+    });
+	</script>
+</body>
+</html>
