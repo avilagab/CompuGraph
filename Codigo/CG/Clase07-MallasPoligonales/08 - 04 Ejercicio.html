@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Operaciones CSG</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="js/three.js"></script>
+	<script src="js/controls/OrbitControls.js"></script>
+	<script src="js/csg.js"></script>
+	<script src="js/THREE.CSG.js"></script>
+    <script>
+		var scene, aspect, camera, renderer, controls;
+		init();
+		animate();
+		function init(){
+			//INICIALIZACIÓN
+	        scene = new THREE.Scene();
+	        aspect = window.innerWidth / window.innerHeight;
+	        camera = new THREE.PerspectiveCamera( 75, aspect, 0.1, 1000);
+	        renderer = new THREE.WebGLRenderer();
+	        renderer.setSize( window.innerWidth, window.innerHeight );
+	        document.body.appendChild( renderer.domElement );
+			controls = new THREE.OrbitControls( camera, renderer.domElement );
+			
+			//ELEMENTOS COMUNES
+			var size = 10;
+			var arrowSize = 1;
+			var divisions = size;
+			var origin = new THREE.Vector3( 0, 0, 0 );
+			var x = new THREE.Vector3( 1, 0, 0 );
+			var y = new THREE.Vector3( 0, 1, 0 );
+		  	var z = new THREE.Vector3( 0, 0, 1 );
+		  	var color = new THREE.Color( 0x333333 );
+		  	var colorR = new THREE.Color( 0xCC3333 );
+		  	var colorG = new THREE.Color( 0x33CC33 );
+		  	var colorB = new THREE.Color( 0x3333CC );
+			
+		  	//CREAR LAS GRILLAS PARA EL ESCENARIO
+		  	var axesHelper = new THREE.AxesHelper( size );
+			scene.add( axesHelper );
+			
+		  	var gridHelperXZ = new THREE.GridHelper( size, divisions, color, color );
+			scene.add( gridHelperXZ );
+            
+            //ROTARLAS PARA QUE QUEDEN EN EL ESPACIO ADECUADO
+            gridHelperXZ.rotateOnWorldAxis ( y, THREE.Math.degToRad(90) );
+
+            //CREAR ILUMINACIÓN
+            var ambient = new THREE.AmbientLight( 0xffffff, 2 );
+            scene.add( ambient );
+			
+            var pointLight = new THREE.PointLight( 0xffffff, 1, 100 );
+            pointLight.position.set( -5, -2, 5 );
+            scene.add( pointLight );
+			
+            var pointLight = new THREE.PointLight( 0xffffff, .5, 100 );
+            pointLight.position.set( 5, -2, -5 );
+            scene.add( pointLight );
+			
+			//CREAR LAS GEOMETRÍAS
+			var boxGeometry = new THREE.BoxGeometry( 1, 0.5, 1 );
+			var sphereGeometry = new THREE.SphereGeometry( 0.5, 32, 32   );
+			var torusGeometry = new THREE.TorusGeometry( 0.2, 0.08, 32, 32 );
+						
+			//CREAR LOS MATERIALES
+            var material1 = new THREE.MeshStandardMaterial( { color: colorR, metalness: 0.5, roughness: 0.1, 
+															  transparent:true, opacity: 0.7 } )
+			var material2 = material1.clone(); 	
+			material2.color = colorR;
+			material2.opacity = 0.3;
+			var material3 = material1.clone(); 	
+			material3.color = colorB;
+			var material4 = material1.clone(); 
+			material4.color = new THREE.Color( 0x33CCCC );
+			var material5 = new THREE.MeshStandardMaterial( { color: colorR, metalness: 0.5, roughness: 0.1 } );
+			
+			//CREAR LAS MALLAS
+			var cube = new THREE.Mesh( boxGeometry );
+			var sphere = new THREE.Mesh( sphereGeometry );
+			var torus1 = new THREE.Mesh( torusGeometry );
+			var torus2 = new THREE.Mesh( torusGeometry );
+			
+			//TRASLADAR LAS MALLAS A SU LUGAR ADECUADO
+			cube.translateY( -0.25 );
+			torus1.translateX( 0.1 );
+			torus1.rotateX( Math.PI/2.0 );
+			torus2.translateX( -0.1  );
+
+			//CONVERTIR A CSG
+			var boxCSG = THREE.CSG.fromMesh( cube );
+			var sphereCSG = THREE.CSG.fromMesh( sphere );
+			var torus1CSG = THREE.CSG.fromMesh( torus1 );
+			var torus2CSG = THREE.CSG.fromMesh( torus2 );
+			
+			//APLICAR LAS OPERACIONES
+			//var result1 = boxCSG.subtract( sphereCSG );	//CAJA MENOS ESFERA
+			var result1 = boxCSG.intersect( sphereCSG );	//INTERSECCIÓN - CAJA Y ESFERA
+			var result2 = torus1CSG.union( torus2CSG );	//UNIÓN - CAJA Y ESFERA
+			var result3 = result1.subtract( result2 );
+			//var result4 = sphereCSG.subtract( boxCSG );	//ESFERA MENOS CAJA
+			
+			//CONVERTIR A MALLA DE THREE JS NUEVAMENTE
+			var C2T1 = THREE.CSG.toMesh( result1 );
+			var C2T2 = THREE.CSG.toMesh( result2 );
+			var C2T3 = THREE.CSG.toMesh( result3 );
+			
+			C2T1.material = material5; 
+			C2T2.material = material5;
+			C2T3.material = material5;
+
+			cube.material = material1;
+			sphere.material = material2;
+			torus1.material = material3;
+			torus2.mateial = material4;
+
+			C2T1.translateX( -2 );
+			C2T1.translateZ(  2 );
+			C2T2.translateZ(  2 );
+			C2T3.translateX(  2 );
+			C2T3.translateZ(  2 );
+			
+			//AGREGAR A LA ESCENA LOS DIFERENTES ELEMENTOS
+			scene.add( cube );			//ACTIVAR PARA VISUALIZAR EL CUBO
+			scene.add( sphere );		//ACTIVAR PARA VISUALIZAR LA ESFERA
+			scene.add( torus1 );			//ACTIVAR EL ANILLO1
+			scene.add( torus2 );			//ACTIVAR EL ANILLO2
+			
+			scene.add( C2T1 );
+			scene.add( C2T2 );
+			scene.add( C2T3 );
+
+			camera.position.x = 2;
+			camera.position.y = 2;
+		  	camera.position.z = 5;
+			camera.lookAt( origin );
+		}
+		function animate(){
+			requestAnimationFrame( animate );
+			controls.update();
+			render();
+		}
+		function render(){
+			renderer.render( scene, camera );
+		}
+    </script>
+  </body>
+</html>
