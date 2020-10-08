@@ -61,8 +61,8 @@
             scene.add( pointLight );
 			
 			//CREAR LAS GEOMETRÍAS
-			var boxGeometry = new THREE.BoxGeometry( 1, 1, 1 );
-			var sphereGeometry = new THREE.SphereGeometry( .5, 32, 32 );
+			var boxGeometry = new THREE.BoxGeometry( 1.5, 0.2, 0.2 );
+			var sphereGeometry = new THREE.SphereGeometry( .5, 12, 12 );
 						
 			//CREAR LOS MATERIALES
             var material1 = new THREE.MeshStandardMaterial( { color: colorR, metalness: 0.5, roughness: 0.1 } );
@@ -70,20 +70,23 @@
 			
 			//CREAR LAS MALLAS
 			var cube = new THREE.Mesh( boxGeometry );
+			var cube2 = new THREE.Mesh( boxGeometry );
 			var sphere = new THREE.Mesh( sphereGeometry );
-			sphere.translateX( .5 );
-			sphere.translateY( .5 );
-			sphere.translateZ( .5 );
+			cube.rotateZ( THREE.Math.degToRad(45) );
+			cube2.rotateZ( THREE.Math.degToRad(-45) );
+			sphere.translateX( .3 );
+			sphere.translateY( .3 );
 			
 			//CONVERTIR A CSG
 			var boxCSG = THREE.CSG.fromMesh( cube );
+			var boxCSG2 =  THREE.CSG.fromMesh( cube2 );
 			var sphereCSG = THREE.CSG.fromMesh( sphere );
 			
 			//APLICAR LAS OPERACIONES
 			var result1 = boxCSG.subtract( sphereCSG );	//CAJA MENOS ESFERA
-			var result2= boxCSG.intersect( sphereCSG );	//INTERSECCIÓN - CAJA Y ESFERA
+			var result2 = boxCSG.intersect( sphereCSG );	//INTERSECCIÓN - CAJA Y ESFERA
 			var result3 = boxCSG.union( sphereCSG );	//UNIÓN - CAJA Y ESFERA
-			var result4 = sphereCSG.subtract( boxCSG );	//ESFERA MENOS CAJA
+			var result4 = sphereCSG.subtract( boxCSG ).subtract( boxCSG2 );	//ESFERA MENOS LAS DOS CAJAS
 			
 			//CONVERTIR A MALLA DE THREE JS NUEVAMENTE
 			var C2T1 = THREE.CSG.toMesh( result1 );
@@ -97,15 +100,19 @@
 			C2T4.material = material1; 
 			
 			cube.material = material1;
+			cube2.material = material1;
 			sphere.material = material2;
 			
 			C2T1.translateX(2);
 			C2T2.translateX(-2);
 			C2T3.translateZ(2);
+			C2T3.rotateZ( THREE.Math.degToRad(45) );
 			C2T4.translateZ(-2);
+
 			
 			//AGREGAR A LA ESCENA LOS DIFERENTES ELEMENTOS
 			scene.add( cube );			//ACTIVAR PARA VISUALIZAR EL CUBO
+			scene.add( cube2 );			//ACTIVAR PARA VISUALIZAR EL CUBO
 			scene.add( C2T1 );
 			scene.add( C2T2 );
 			scene.add( C2T3 );

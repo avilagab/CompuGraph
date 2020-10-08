@@ -1,0 +1,743 @@
+ <!DOCTYPE html>
+<html>
+  <head>
+    <title>Sol Palomino, Felipe Galvis</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="js/three.min.js"></script>
+    <script src="js/controls/OrbitControls.js"></script>
+    <script>
+		var scene, aspect, camera, renderer, controls;
+		var startTime = Date.now();
+		init();
+		animate();
+	
+		function init(){
+			//INICIALIZACIÓN DE LA ESCENA
+			scene = new THREE.Scene();
+            scene.background = new THREE.Color( 0xAAAAAA );
+			aspect = window.innerWidth / window.innerHeight;
+			camera = new THREE.PerspectiveCamera( 45, aspect, 0.1, 1000);
+			renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+            controls = new THREE.OrbitControls( camera, renderer.domElement );
+			
+			//ELEMENTOS DE ESCENA
+			var size = 10;
+			var arrowSize = 1;
+			var divisions = size;
+			var origin = new THREE.Vector3( 0, 0, 0 );
+			var x = new THREE.Vector3( 1, 0, 0 );
+			var y = new THREE.Vector3( 0, 1, 0 );
+		  	var z = new THREE.Vector3( 0, 0, 1 );
+			var color1 = new THREE.Color( 0xFFFFFF );
+		  	var color2 = new THREE.Color( 0x333333 );
+		  	var colorR = new THREE.Color( 0xAA3333 );
+		  	var colorG = new THREE.Color( 0x33AA33 );
+		  	var colorB = new THREE.Color( 0x333366 );
+			var colorRd = new THREE.Color( 0xAA6666 );
+		  	var colorGd = new THREE.Color( 0x66AA66 );
+		  	var colorBd = new THREE.Color( 0x6666AA );
+			
+			//CREAR ILUMINACIÓN
+            var ambient = new THREE.AmbientLight( 0xffffff, 1 );
+            scene.add( ambient );
+            
+            var pointLight1 = new THREE.PointLight( 0xffffff, .2, 100 );
+            pointLight1.position.set( 10, 10, -10 );
+            scene.add( pointLight1 );
+			
+			var pointLight2 = new THREE.PointLight( 0xffffff, .5, 100 );
+            pointLight2.position.set( 20, 20, 20 );
+            scene.add( pointLight2 );
+            
+        //SPLINES 3D
+            //ALICIA 
+            var curve2D = [];				
+                curve2D[0] = new THREE.Vector2( 0, 0 );
+                curve2D[1] = new THREE.Vector2( .5, .5);
+                curve2D[2] = new THREE.Vector2( 2, -.3 );
+                curve2D[3] = new THREE.Vector2( 3, -.7 );
+                curve2D[4] = new THREE.Vector2( 4.5, -.5 );
+                curve2D[5] = new THREE.Vector2( 4, 3);
+                curve2D[6] = new THREE.Vector2( 2, 5 );
+                curve2D[7] = new THREE.Vector2( 1, 6.3);
+                curve2D[8] = new THREE.Vector2( 1, 7);				
+                curve2D[9] = new THREE.Vector2( 3.5, 6.5);
+                curve2D[10] = new THREE.Vector2( 4, 7);
+                curve2D[11] = new THREE.Vector2( 3.9, 7.4);
+                curve2D[12] = new THREE.Vector2( 4.1, 7.7);
+                curve2D[13] = new THREE.Vector2( 3.9, 8.1);
+		        curve2D[14] = new THREE.Vector2( 4.2, 8.5);
+                curve2D[15] = new THREE.Vector2( 4, 9.1);
+                curve2D[16] = new THREE.Vector2( 4.3, 10);
+                curve2D[17] = new THREE.Vector2( 3.4, 11);				
+                curve2D[18] = new THREE.Vector2( 3.7, 11.8);
+                curve2D[19] = new THREE.Vector2( 3.9, 12);
+                curve2D[20] = new THREE.Vector2( 3.5, 12);
+                curve2D[21] = new THREE.Vector2( 3.5, 13);
+                curve2D[22] = new THREE.Vector2( 3.3, 14);
+                curve2D[23] = new THREE.Vector2( 4, 15.5);
+		        curve2D[24] = new THREE.Vector2( 3, 17);
+                curve2D[25] = new THREE.Vector2( 1, 16.7);
+                curve2D[26] = new THREE.Vector2( 1, 17.5);
+                curve2D[27] = new THREE.Vector2( .5, 18);
+                curve2D[28] = new THREE.Vector2( 0, 17.7);				
+                curve2D[29] = new THREE.Vector2( -.5, 17.3);
+                curve2D[30] = new THREE.Vector2( -1.5, 17.7);
+                curve2D[31] = new THREE.Vector2( -2.3, 17.5);
+                curve2D[32] = new THREE.Vector2( -2.3, 16.7);
+                curve2D[33] = new THREE.Vector2( -1.5, 16.4);
+ 		        curve2D[34] = new THREE.Vector2( -3.8, 14.5);
+                curve2D[35] = new THREE.Vector2( -5, 10);
+                curve2D[36] = new THREE.Vector2( -6.5, 7);
+                curve2D[37] = new THREE.Vector2( -7.5, 4);
+                curve2D[38] = new THREE.Vector2( -7.5, .5);				
+                curve2D[39] = new THREE.Vector2( -5, -2);
+                curve2D[40] = new THREE.Vector2( -3, -1.5);
+                curve2D[41] = new THREE.Vector2( -1.5, 0);
+                curve2D[42] = new THREE.Vector2( -.5, .5);
+                curve2D[43] = new THREE.Vector2( 0, 0);
+				
+            //ALICIA HUECO LAZO
+			 var curve22D = [];
+                curve22D[0] = new THREE.Vector2( -2.5, 11 );
+                curve22D[1] = new THREE.Vector2( -1.5, 14.5 );
+                curve22D[2] = new THREE.Vector2( .5, 17 );
+                curve22D[3] = new THREE.Vector2( .5, 17.7);
+                curve22D[4] = new THREE.Vector2( 0, 17.3 );
+				curve22D[5] = new THREE.Vector2( -.5, 16.9);
+                curve22D[6] = new THREE.Vector2( -1.8, 17.5);
+                curve22D[7] = new THREE.Vector2( -2, 17);
+				curve22D[8] = new THREE.Vector2( -1, 16.4);
+                curve22D[9] = new THREE.Vector2( -2, 14.5);
+                curve22D[10] = new THREE.Vector2( -2.5, 11 );
+            
+            //ALICIA HUECO CARA
+			var curve32D = [];
+                curve32D[0] = new THREE.Vector2( -2.8, 9.5 );
+                curve32D[1] = new THREE.Vector2( -2.5, 8 );
+                curve32D[2] = new THREE.Vector2( -.5, 7.5 );
+                curve32D[3] = new THREE.Vector2( -2.3, 8.3 );
+                curve32D[4] = new THREE.Vector2( -2.8, 9.5 );
+            
+            //ALICIA HUECO CABELLO
+            var curve42D = [];
+                curve42D[0] = new THREE.Vector2( 3, 15.5 );
+                curve42D[1] = new THREE.Vector2( 1.8, 14 );
+                curve42D[2] = new THREE.Vector2( .2, 13 );
+                curve42D[3] = new THREE.Vector2( .5, 12.5 );
+                curve42D[4] = new THREE.Vector2( 2.4, 14 );
+                curve42D[5] = new THREE.Vector2( 3, 15.5 );
+            
+            //ALICIA HUECO ROPA
+             var curve52D = [];
+                curve52D[0] = new THREE.Vector2( -5, 6.5 );
+                curve52D[1] = new THREE.Vector2( -4.8, 5 );
+                curve52D[2] = new THREE.Vector2( -3.8, 4.7);
+                curve52D[3] = new THREE.Vector2( -4.8, 3.5 );
+                curve52D[4] = new THREE.Vector2( -4, 2 );
+                curve52D[5] = new THREE.Vector2( -4, 3.6 );
+                curve52D[6] = new THREE.Vector2( -1.8, 4.5 );
+                curve52D[7] = new THREE.Vector2( .5, 2.5 );
+	            curve52D[8] = new THREE.Vector2( 2, .3);
+                curve52D[9] = new THREE.Vector2( 3.5, -.2 );
+                curve52D[10] = new THREE.Vector2( 4, 1);
+                curve52D[11] = new THREE.Vector2( 3, 3.5 );
+                curve52D[12] = new THREE.Vector2( 1.5, 5 );
+                curve52D[13] = new THREE.Vector2( 1.5, 4.4 );
+                curve52D[14] = new THREE.Vector2( 1.1, 4.8 );
+                curve52D[15] = new THREE.Vector2( 1.1, 4.2 );
+                curve52D[16] = new THREE.Vector2( .8, 4.5 );
+                curve52D[17] = new THREE.Vector2( .6, 4 );
+                curve52D[18] = new THREE.Vector2( -.5, 5.4 );
+                curve52D[19] = new THREE.Vector2( -3, 5 );
+                curve52D[20] = new THREE.Vector2( -4.7, 5.3 );
+                curve52D[21] = new THREE.Vector2( -5, 6.5 );
+	
+	
+			var shape = new THREE.Shape();
+			shape.moveTo(0,0);
+			var shape2 = new THREE.Shape();
+			shape2.moveTo(-2.5, 11);
+			var shape3 = new THREE.Shape();
+			shape3.moveTo( -3, 9.5);
+            var shape4 = new THREE.Shape();
+			shape4.moveTo( 3, 15.5 );
+            var shape5 = new THREE.Shape();
+			shape5.moveTo( -5, 6.5 );
+            
+			shape.splineThru(curve2D);
+			shape2.splineThru(curve22D);
+			shape3.splineThru(curve32D);
+            shape4.splineThru(curve42D);
+            shape5.splineThru(curve52D);
+            shape.holes.push(shape2);
+			shape.holes.push(shape3);	
+            shape.holes.push(shape4);	
+            shape.holes.push(shape5);	
+            
+            var material = new THREE.LineBasicMaterial( { color : '#EED71E' } );
+            var resolution = 50;
+            var points = shape.getPoints( resolution );
+            var geometry = new THREE.BufferGeometry().setFromPoints( points );
+            // Create the final object to add to the scene
+            var curveObject = new THREE.Line( geometry, material );
+            
+			//EXTRUDE
+			var extrudeSettings = {
+				steps: 2,
+				amount: 2,
+				bevelEnabled: false,
+			};
+			
+			var extrudeSettings2 = {
+				steps: 2,
+				amount: 2,
+				bevelEnabled: false,
+			};
+
+			var geometryExt = new THREE.ExtrudeGeometry( shape, extrudeSettings );
+			var materialExt= new THREE.MeshStandardMaterial( { 
+				color: '#61D0E4', 
+			} );
+			
+			var mesh = new THREE.Mesh( geometryExt, materialExt ) ;
+			scene.add( mesh );
+            
+       //SPLINE 2D
+            //ALICIA
+            var curve62D = new THREE.SplineCurve([
+                new THREE.Vector2( -20, 0 ),
+                new THREE.Vector2( -19.5, .5),
+                new THREE.Vector2( -18, -.3 ),
+                new THREE.Vector2( -17, -.7 ),
+                new THREE.Vector2( -15.5, -.5 ),
+                new THREE.Vector2( -16, 3),
+                new THREE.Vector2( -18, 5 ),
+                new THREE.Vector2( -19, 6.3),
+                new THREE.Vector2( -19, 7),				
+                new THREE.Vector2( -16.5, 6.5),
+                new THREE.Vector2( -16, 7),
+                new THREE.Vector2( -16.1, 7.4),
+                new THREE.Vector2( -15.9, 7.7),
+                new THREE.Vector2( -16.1, 8.1),
+		        new THREE.Vector2( -15.8, 8.5),
+                new THREE.Vector2( -16, 9.1),
+                new THREE.Vector2( -15.7, 10),
+                new THREE.Vector2( -16.6, 11),				
+                new THREE.Vector2( -16.3, 11.8),
+                new THREE.Vector2( -16.1, 12),
+                new THREE.Vector2( -16.5, 12),
+                new THREE.Vector2( -16.5, 13),
+                new THREE.Vector2( -16.7, 14),
+                new THREE.Vector2( -16, 15.5),
+		        new THREE.Vector2( -17, 17),
+                new THREE.Vector2( -19, 16.7),
+                new THREE.Vector2( -19, 17.5),
+                new THREE.Vector2( -19.5, 18),
+                new THREE.Vector2( -20, 17.7),				
+                new THREE.Vector2( -20.5, 17.3),
+                new THREE.Vector2( -21.5, 17.7),
+                new THREE.Vector2( -22.3, 17.5),
+                new THREE.Vector2( -22.3, 16.7),
+                new THREE.Vector2( -21.5, 16.4),
+ 		        new THREE.Vector2( -23.8, 14.5),
+                new THREE.Vector2( -25, 10),
+                new THREE.Vector2( -26.5, 7),
+                new THREE.Vector2( -27.5, 4),
+                new THREE.Vector2( -27.5, .5),				
+                new THREE.Vector2( -25, -2),
+                new THREE.Vector2( -23, -1.5),
+                new THREE.Vector2( -21.5, 0),
+                new THREE.Vector2( -20.5, .5),
+                new THREE.Vector2( -20, 0),
+            ] );
+            
+            //ALICIA HUECO LAZO
+			 var curve72D = new THREE.SplineCurve([
+                new THREE.Vector2( -22.5, 11 ),
+                new THREE.Vector2( -21.5, 14.5 ),
+                new THREE.Vector2( -19.5, 17 ),
+                new THREE.Vector2( -19.5, 17.7),
+                new THREE.Vector2( -20, 17.3 ),
+				new THREE.Vector2( -20.5, 16.9),
+                new THREE.Vector2( -21.8, 17.5),
+                new THREE.Vector2( -22, 17),
+				new THREE.Vector2( -21, 16.4),
+                new THREE.Vector2( -22, 14.5),
+                new THREE.Vector2( -22.5, 11 ),] );
+            
+            //ALICIA HUECO CARA
+			 var curve82D = new THREE.SplineCurve([
+                new THREE.Vector2( -22.8, 9.5 ),
+                new THREE.Vector2( -22.5, 8 ),
+                new THREE.Vector2( -20.5, 7.5 ),
+                new THREE.Vector2( -22.3, 8.3 ),
+                new THREE.Vector2( -22.8, 9.5 ),] );
+            
+            //ALICIA HUECO CABELLO
+             var curve92D = new THREE.SplineCurve([      
+                new THREE.Vector2( -17, 15.5 ),
+                new THREE.Vector2( -18.2, 14 ),
+                new THREE.Vector2( -19.8, 13 ),
+                new THREE.Vector2( -19.5, 12.5 ),
+                new THREE.Vector2( -17,6, 16 ),
+                new THREE.Vector2( -17, 15.5 )
+             ] );
+            
+            //ALICIA HUECO ROPA
+              var curve102D = new THREE.SplineCurve([
+                new THREE.Vector2( -25, 6.5 ),
+                new THREE.Vector2( -24.8, 5 ),
+                new THREE.Vector2( -23.8, 4.7),
+                new THREE.Vector2( -24.8, 3.5 ),
+                new THREE.Vector2( -24, 2 ),
+                new THREE.Vector2( -24, 3.6 ),
+                new THREE.Vector2( -21.8, 4.5 ),
+                new THREE.Vector2( -19.5, 2.5 ),
+	            new THREE.Vector2( -18, .3),
+                new THREE.Vector2( -16.5, -.2 ),
+                new THREE.Vector2( -16, 1),
+                new THREE.Vector2( -17, 3.5 ),
+                new THREE.Vector2( -18.5, 5 ),
+                new THREE.Vector2( -18.5, 4.4 ),
+                new THREE.Vector2( -18.9, 4.8 ),
+                new THREE.Vector2( -18.9, 4.2 ),
+                new THREE.Vector2( -19.2, 4.5 ),
+                new THREE.Vector2( -19.4, 4 ),
+                new THREE.Vector2( -20.5, 5.4 ),
+                new THREE.Vector2( -23, 5 ),
+                new THREE.Vector2( -24.7, 5.3 ),
+                new THREE.Vector2( -25, 6.5 ),] );
+            
+            var material2 = new THREE.LineBasicMaterial( { color : '#EED71E' } );
+            var resolution2 = 70;
+            var points2 = curve62D.getPoints( resolution2 );
+            var geometry2 = new THREE.BufferGeometry().setFromPoints( points2 );
+            var curveObject2 = new THREE.Line( geometry2, material2 );
+            
+             var points3 = curve72D.getPoints( resolution2 );
+            var geometry3 = new THREE.BufferGeometry().setFromPoints( points3 );
+            var curveObject3 = new THREE.Line( geometry3, material2 );
+            
+             var points4 = curve82D.getPoints( resolution2 );
+            var geometry4 = new THREE.BufferGeometry().setFromPoints( points4 );
+            var curveObject4 = new THREE.Line( geometry4, material2 );
+            
+             var points5 = curve92D.getPoints( resolution2 );
+            var geometry5 = new THREE.BufferGeometry().setFromPoints( points5 );
+            var curveObject5 = new THREE.Line( geometry5, material2 );
+             
+            var points6 = curve102D.getPoints( resolution2 );
+            var geometry6 = new THREE.BufferGeometry().setFromPoints( points6 );
+            var curveObject6 = new THREE.Line( geometry6, material2 );
+            
+            scene.add( curveObject2 );
+             scene.add( curveObject3 );
+             scene.add( curveObject4 );
+            // scene.add( curveObject5 );
+             scene.add( curveObject6 );
+        
+       //CURVA BEZIER
+            //CURVAS FRENTE	
+		var curve1 = new THREE.CubicBezierCurve3(
+            new THREE.Vector2( 20, 0, 0 ),
+            new THREE.Vector2( 20.5, .5, 0),
+            new THREE.Vector2( 22, -.3, 0),
+            new THREE.Vector2( 23, -.7, 0 ));
+            
+        var curve2 = new THREE.CubicBezierCurve3(
+            new THREE.Vector2( 23, -.7,0 ),
+            new THREE.Vector2(24.5, -.5, 0 ),
+            new THREE.Vector2( 24, 3, 0),
+            new THREE.Vector2( 22, 5, 0 )
+            	);
+
+		var curve3 = new THREE.CubicBezierCurve3(
+			new THREE.Vector2( 22, 5, 0 ),
+            new THREE.Vector2( 21, 6.3, 0),
+            new THREE.Vector2( 21, 7, 0),			
+            new THREE.Vector2( 23.5, 6.5, 0)
+            	);   
+        	
+		var curve4 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 23.5, 6.5, 0),  
+            new THREE.Vector2( 24, 7, 0 ),
+            new THREE.Vector2( 23.9, 7.4, 0),
+            new THREE.Vector2( 24.1, 7.7, 0)  
+            	);
+    
+		var curve5 = new THREE.CubicBezierCurve3(
+            new THREE.Vector2( 24.1, 7.7, 0),
+	        new THREE.Vector2( 23.9, 8.1,0),
+		    new THREE.Vector2( 24.2, 8.5,0),
+            new THREE.Vector2( 24, 9.1,0)    
+            	);
+
+		var curve6 = new THREE.CubicBezierCurve3(
+	         new THREE.Vector2( 24, 9.1,0),
+            new THREE.Vector2( 24.3, 10, 0),
+            new THREE.Vector2( 23.4, 11, 0),				
+            new THREE.Vector2( 23.7, 11.8, 0)
+                	);
+
+		var curve7 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 23.7, 11.8, 0),
+            new THREE.Vector2( 23.9, 12,0),
+            new THREE.Vector2( 23.5, 12,0),
+            new THREE.Vector2( 23.5, 13,0)               
+            );
+            
+        var curve8 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 23.5, 13,0),
+            new THREE.Vector2( 23.3, 14,0),
+            new THREE.Vector2( 24, 15.5,0),
+		  new THREE.Vector2( 23, 17, 0)               
+            );
+            
+        var curve9 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 23, 17, 0),              
+            new THREE.Vector2( 21, 16.7, 0),
+            new THREE.Vector2( 21, 17.5, 0),
+            new THREE.Vector2( 20.5, 18, 0)
+                
+            );
+            
+        var curve10 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 20.5, 18, 0),
+            new THREE.Vector2( 20, 17.7, 0),				
+            new THREE.Vector2( -.5, 17.3, 0),
+            new THREE.Vector2( -1.5, 17.7, 0)
+                            
+            );
+            
+         var curve11 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( -1.5, 17.7, 0),
+            new THREE.Vector2( -2.3, 17.5, 0),
+            new THREE.Vector2( -2.3, 16.7, 0),
+            new THREE.Vector2( -1.5, 16.4, 0)
+ 		                         
+            );
+            
+         var curve12 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( -1.5, 16.4, 0),
+            new THREE.Vector2( -3.8, 14.5, 0),
+            new THREE.Vector2( -5, 10, 0),
+            new THREE.Vector2( -6.5, 7, 0)                            
+            );
+            
+         var curve13 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( -6.5, 7, 0),
+            new THREE.Vector2( -7.5, 4, 0),
+            new THREE.Vector2( -7.5, .5, 0),				
+            new THREE.Vector2( -5, -2, 0)
+                           
+            );
+            
+         var curve14 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( -5, -2, 0),
+            new THREE.Vector2( -3, -1.5, 0),
+            new THREE.Vector2( -1.5, 0, 0),
+            new THREE.Vector2( -.5, .5, 0)                           
+            );
+	
+		
+		
+           
+	//CURVAS ATRAS
+	    var curve01 = new THREE.CubicBezierCurve3(
+               	new THREE.Vector2( 20, 0 ,-5),
+                new THREE.Vector2( 20.5, .5,-5),
+                new THREE.Vector2( 22, -.3,-5 ),
+                new THREE.Vector2( 23, -.7 ,-5));
+            
+        var curve02 = new THREE.CubicBezierCurve3(
+                new THREE.Vector2( 23, -.7 ,-5),
+                 new THREE.Vector2( 24.5, -.5 ,-5),
+                 new THREE.Vector2( 24, 3,-5),
+                new THREE.Vector2( 22, 5,-5 )
+            	);
+
+		var curve03 = new THREE.CubicBezierCurve3(
+			new THREE.Vector2( 22, 5 ,-5),
+            new THREE.Vector2( 21, 6.3,-5),
+            new THREE.Vector2( 21, 7,-5),			
+            new THREE.Vector2( 23.5, 6.5,-5)
+            	);   
+        	
+		var curve04 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 23.5, 6.5, -5),  
+            new THREE.Vector2( 24, 7, -5 ),
+            new THREE.Vector2( 23.9, 7.4, -5),
+            new THREE.Vector2( 24.1, 7.7, -5)
+                
+            	);
+    
+		var curve05 = new THREE.CubicBezierCurve3(
+            new THREE.Vector2( 24.1, 7.7, -5),
+	        new THREE.Vector2( 23.9, 8.1,-5),
+		    new THREE.Vector2( 24.2, 8.5,-5),
+            new THREE.Vector2( 24, 9.1,-5)
+                
+            	);
+
+		var curve06 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 24, 9.1,-5),
+            new THREE.Vector2( 24.3, 10, -5),
+            new THREE.Vector2( 23.4, 11, -5),				
+            new THREE.Vector2( 23.7, 11.8, -5)
+                 
+           
+            	);
+
+		var curve07 = new THREE.CubicBezierCurve3(
+	       new THREE.Vector2( 23.7, 11.8, -5),
+            new THREE.Vector2( 23.9, 12, -5),
+            new THREE.Vector2(23.5, 12, -5),
+            new THREE.Vector2( 23.5, 13, -5)
+                                 
+            	);
+            
+          var curve08 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 23.5, 13, -5),
+            new THREE.Vector2( 23.3, 14, -5),
+            new THREE.Vector2( 24, 15.5, -5),
+		  new THREE.Vector2( 23, 17, -5)               
+            );
+            
+        var curve09 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 23, 17,  -5),              
+            new THREE.Vector2( 21, 16.7,  -5),
+            new THREE.Vector2( 21, 17.5,  -5),
+            new THREE.Vector2( 20.5, 18,  -5)
+                
+            );
+            
+        var curve010 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( 20.5, 18,  -5),
+            new THREE.Vector2( 20, 17.7,  -5),				
+            new THREE.Vector2( -.5, 17.3,  -5),
+            new THREE.Vector2( -1.5, 17.7,  -5)
+                            
+            );
+            
+         var curve011 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( -1.5, 17.7,  -5),
+            new THREE.Vector2( -2.3, 17.5,  -5),
+            new THREE.Vector2( -2.3, 16.7,  -5),
+            new THREE.Vector2( -1.5, 16.4,  -5)
+ 		                         
+            );
+            
+         var curve012 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( -1.5, 16.4,  -5),
+            new THREE.Vector2( -3.8, 14.5,  -5),
+            new THREE.Vector2( -5, 10,  -5),
+            new THREE.Vector2( -6.5, 7,  -5)                            
+            );
+            
+         var curve013 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( -6.5, 7,  -5),
+            new THREE.Vector2( -7.5, 4, -5),
+            new THREE.Vector2( -7.5, .5,  -5),				
+            new THREE.Vector2( -5, -2,  -5)
+                           
+            );
+            
+         var curve014 = new THREE.CubicBezierCurve3(
+	        new THREE.Vector2( -5, -2,  -5),
+            new THREE.Vector2( -3, -1.5,  -5),
+            new THREE.Vector2( -1.5, 0,  -5),
+            new THREE.Vector2( -.5, .5,  -5)                           
+            );
+	
+	
+	//PUNTOS
+	//CURVAS FERENTE
+            var pointGeometry = new THREE.Geometry();
+            for(var i=0; i<20; i++){
+                var point = curve1.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+            
+            for(var i=0; i<20; i++){
+                var point = curve2.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+            for(var i=0; i<20; i++){
+                var point = curve3.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve4.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve5.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve6.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve7.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+            
+         for(var i=0; i<20; i++){
+                var point = curve8.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve9.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve10.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve11.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+          for(var i=0; i<20; i++){
+                var point = curve12.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve13.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+            
+        for(var i=0; i<20; i++){
+                var point = curve14.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	//CURVAS ATRAS
+            for(var i=0; i<20; i++){
+                var point = curve01.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+            
+            for(var i=0; i<20; i++){
+                var point = curve02.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+            for(var i=0; i<20; i++){
+                var point = curve03.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+            for(var i=0; i<20; i++){
+                var point = curve04.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+            for(var i=0; i<20; i++){
+                var point = curve05.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+            for(var i=0; i<20; i++){
+                var point = curve06.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+            for(var i=0; i<20; i++){
+                var point = curve07.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+            
+             for(var i=0; i<20; i++){
+                var point = curve08.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve09.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve010.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve011.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+          for(var i=0; i<20; i++){
+                var point = curve012.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+	    for(var i=0; i<20; i++){
+                var point = curve013.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+            
+        for(var i=0; i<20; i++){
+                var point = curve014.getPoint( i/20 );
+                pointGeometry.vertices.push( point );
+            }
+
+
+	//UNION CON MATERIAL
+            var pointMaterial = new THREE.PointsMaterial( { color: "#61D0E4" } );
+            var curvePoints = new THREE.Points( pointGeometry, pointMaterial );
+            
+            var material0 = new THREE.MeshStandardMaterial( { color : "#EED71E" } );
+            material0.side = THREE.DoubleSide;
+            for(var i=0; i<139; i++){
+                var face1 = new THREE.Face3( i, i+1, i+100 );
+                pointGeometry.faces.push( face1 );
+                var face2 = new THREE.Face3( i+1, i+100, i+101 );
+                pointGeometry.faces.push( face2 );
+            }
+            pointGeometry.computeFaceNormals();
+            scene.add( new THREE.Mesh( pointGeometry, material0 ) );
+            scene.add( curvePoints );
+
+            
+            
+		  	//AGREGAR A LA ESCENA
+			//scene.add( curveObject );
+			
+            
+			//MOVER LA CÁMARA
+			camera.position.x = -20;
+			camera.position.y = 30;	 
+		  	camera.position.z = 30;			
+		  	//camera.lookAt( origin );
+			}
+    
+    function animate() {
+        requestAnimationFrame( animate );
+        controls.update();
+        render();
+    }
+    
+    function render(){
+        renderer.render( scene, camera );
+    }
+    </script>
+  </body>
+</html>

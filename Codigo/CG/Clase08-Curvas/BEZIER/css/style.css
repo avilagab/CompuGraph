@@ -1,0 +1,61 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #fff;
+}
+#st{
+  margin: 10px;
+  position: relative;
+}
+#st input.error {
+  border: 1px solid #b94a48;
+}
+#st .btn-toolbar .input-prepend {
+  margin: 0 0 0 5px;
+}
+#st .speed {
+  width: 50px;
+}
+#axis {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+}
+#axis:before{
+  position: absolute;
+  content: '';
+  width: 4px;
+  height: 4px;
+  border: 1px solid #777;
+  border-radius: 5px;
+  top: 20px;
+  left: -2px;
+  background-color: #ddd;
+}
+#vis{
+  background: transparent;
+  background-image: linear-gradient(0deg, transparent 49%, rgba(0, 0, 0, .15) 50%, rgba(0, 0, 0, .15) 51%, transparent 52%, transparent), linear-gradient(90deg, transparent 49%, rgba(0, 0, 0, .15) 50%, rgba(0, 0, 0, .15) 51%, transparent 52%, transparent);
+  background-image: -webkit-linear-gradient(0deg, transparent 49%, rgba(0, 0, 0, .15) 50%, rgba(0, 0, 0, .15) 51%, transparent 52%, transparent), -webkit-linear-gradient(90deg, transparent 49%, rgba(0, 0, 0, .15) 50%, rgba(0, 0, 0, .15) 51%, transparent 52%, transparent);
+  background-size: 25px 25px;
+  border-top: 1px solid rgba(0, 0, 0, .15);
+}
+
+div.input-append {
+  margin-right: 5px
+}
+.curve, .line {
+  fill: none;
+  stroke-width: 1px;
+}
+.curve {
+  stroke: red;
+  stroke-width: 3px;
+}
+.control {
+  fill: #ccc;
+  stroke: #000;
+  stroke-width: .5px;
+}
+.t, .controltext {
+  font-size: .6em;
+}

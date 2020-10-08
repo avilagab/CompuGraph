@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>Bezier Curve</title>
+  
+  
+  <link rel='stylesheet' href='https://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css'>
+
+      <link rel="stylesheet" href="css/style.css">
+
+  
+</head>
+
+<body>
+
+  <div class='well' id='st'>
+  <span class='points'>
+    <div class="input-prepend input-append point error">
+      <span class="add-on">P0: x</span>
+      <input class="input-mini x" type="number" min='0' max='50' placeholder="0-50" />
+      <span class="add-on">y</span>
+      <input class="input-mini y" type="number" min='0' max='50' placeholder="0-50" />
+      <button class="btn minus" type="button"><i class="icon-minus"></i></button>
+      <button class="btn plus" type="button"><i class="icon-plus"></i></button>
+    </div>
+  </span>
+  <p  class="text-error hidden">Please set coordinates for all points</p>
+  <div class="btn-toolbar">
+    <button class="btn btn-primary submit" type="button">Apply</button>
+    <div class="btn-group" data-toggle="buttons-radio">
+      <button type="button" class="btn play active"><i class="icon-play"></i></button>
+      <button type="button" class="btn pause"><i class="icon-pause"></i></button>
+      <button type="button" class="btn stop"><i class="icon-stop"></i></button>
+    </div>
+    <div class="btn-group" data-toggle="buttons-radio">
+      <button data-on='false' type="button" class="btn step active active">Single</button>
+      <button data-on='true' type="button" class="btn step">Stepped</button>
+    </div>
+    <div class="input-prepend">
+      <span class="add-on">Animation</span>
+      <select class="speed">
+        <option value='50000'>1</option>
+        <option value='10000'>2</option>
+        <option value='5000' selected>3</option>
+        <option value='1000'>4</option>
+      </select>
+    </div>
+  </div>
+  <div id='axis'>
+    <span class="label label-success">0,0</span>
+  </div>
+</div>
+
+<div id='vis'></div>
+  <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+<script src='https://d3js.org/d3.v2.min.js'></script>
+
+  
+
+    <script  src="js/index.js"></script>
+
+
+
+
+</body>
+
+</html>
