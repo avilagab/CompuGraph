@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.js"></script>
+		<script>
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+			
+			var vector1 = new THREE.Vector3(1,0,0);
+			var vector2 = new THREE.Vector3(0,1,0);
+			var vector3 = new THREE.Vector3(0,0,1);	
+						
+			console.log("Vector1:");
+			console.log(vector1);
+			console.log("Vector2:");
+			console.log(vector2);
+			console.log("Vector3:");
+			console.log(vector3);			
+			console.log(matrix1);
+			
+			//SUMA DE DOS VECTORES
+			var vector4 = new THREE.Vector3();
+			vector4 = vector4.add(vector1).add(vector2).add(vector3);
+			console.log(vector4);
+			//SUMA CON UN ESCALAR
+			vector4 = vector4.addScalar(5);
+			console.log(vector4);
+			//CALCULO DE ANGULOS ENTRE DOS VECTORES
+			var angulo;
+			angulo = vector1.angleTo(vector2);
+			console.log("Angulo entre vector1 y vector2:");
+			console.log(angulo * 180.0 / Math.PI);
+			//PRODUCTO CRUZ ENTRE DOS VECTORES
+			var vector5 = new THREE.Vector3();
+			vector5.crossVectors(vector1, vector2);
+			console.log("Producto cruz:");
+			console.log(vector5);
+			//PRODUCTO PUNTO ENTRE DOS VECTORES
+			var punto = vector1.dot(vector2);
+			console.log("Producto punto:");
+			console.log(punto);
+			//DISTANCIA ENTRE DOS VECTORES
+			var distancia = vector1.distanceTo(vector2);
+			console.log("Distancias:");
+			console.log(distancia);
+			//DISTANCIA DE MANHATTAN ENTRE DOS VECTORES (Cuadrícula)
+			distancia = vector1.manhattanDistanceTo(vector2);
+			console.log(distancia);
+			
+			//MATRICES
+			var matrix1 = new THREE.Matrix3();
+			matrix1.set(11, 12, 13,
+						21, 22, 23,
+						31, 32, 33);
+						
+			console.log(matrix1);
+						
+			vector1.applyMatrix3(matrix1);
+			console.log(vector1);
+			
+			//TRASLACION
+			//Los vectores en Three.js son vectores columna
+			//El elemento Z para el punto debe estar en 1
+			//La matriz de traslación debe ser acorde
+			
+			var vectorP = new THREE.Vector3(1,1,1); //[1 1 1]T
+			var matrixT = new THREE.Matrix3();
+			matrixT.set(1, 0, 3,  //tx
+						0, 1, 1,  //ty
+						0, 0, 1); 
+			vectorP.applyMatrix3(matrixT);
+			console.log(vectorP);	
+		</script>
+	</body>
+</html>

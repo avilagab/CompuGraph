@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.js"></script>
+		<script>
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+			
+			var vertice1 = new THREE.Vector3( 5, 3, 1);
+			var vertice2 = new THREE.Vector3( 3, 3, 1);
+			var vertice3 = new THREE.Vector3( 3, 1, 1);	
+			var vertice4 = new THREE.Vector3( 5, 1, 1);
+			//TRASLACION INVERSA
+			var matrixIT = new THREE.Matrix3();
+			matrixIT.set(1, 0,-4,
+						0, 1,-2,
+						0, 0, 1);
+									
+			vertice1.applyMatrix3(matrixIT);
+			vertice2.applyMatrix3(matrixIT);
+			vertice3.applyMatrix3(matrixIT);
+			vertice4.applyMatrix3(matrixIT);		
+			
+			/*
+			//ESCALA
+			var matrixS = new THREE.Matrix3();
+			matrixS.set(2, 0, 0,
+						0, 2, 0,
+						0, 0, 1);
+						
+			vertice1.applyMatrix3(matrixS);
+			vertice2.applyMatrix3(matrixS);
+			vertice3.applyMatrix3(matrixS);
+			vertice4.applyMatrix3(matrixS);
+			
+			//ROTACION		*/
+			var angulo = Math.PI / 4.0;
+			var cA = Math.cos(angulo);
+			var sA = Math.sin(angulo); /*
+			
+			var matrixR = new THREE.Matrix3();
+			matrixR.set(cA,-sA, 0,
+						sA, cA, 0,
+						 0,  0, 1);	
+						 
+			vertice1.applyMatrix3(matrixR);
+			vertice2.applyMatrix3(matrixR);
+			vertice3.applyMatrix3(matrixR);
+			vertice4.applyMatrix3(matrixR);*/						 
+
+			//ROTACION Y ESCALA
+			var matrixRS = new THREE.Matrix3();
+			matrixRS.set(2*cA, -2*sA,  0,
+						 2*sA,  2*cA,  0,
+						    0,     0,  1);	
+						
+			vertice1.applyMatrix3(matrixRS);
+			vertice2.applyMatrix3(matrixRS);
+			vertice3.applyMatrix3(matrixRS);
+			vertice4.applyMatrix3(matrixRS); 
+			
+			var matrixT = new THREE.Matrix3();
+			matrixT.set(1, 0, 4,
+						0, 1, 2,
+						0, 0, 1);
+									
+			vertice1.applyMatrix3(matrixT);
+			vertice2.applyMatrix3(matrixT);
+			vertice3.applyMatrix3(matrixT);
+			vertice4.applyMatrix3(matrixT);	
+			
+			console.log(vertice1);
+			console.log(vertice2);
+			console.log(vertice3);
+			console.log(vertice4);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.js"></script>
+		<script>
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+			
+			var color1 = new THREE.Color( 0xFFFFFF );
+			var origin = new THREE.Vector3( 0, 0, 0 );
+			var xOrigen = new THREE.Vector3( 1, 0, 0 );
+		
+			//CREAR LAS GRILLAS
+			var gridHelperXY = new THREE.GridHelper( 10, 10, color1, color1);	//Se crea una grilla de tamaño 10 con 10 divisiones. Por defecto se crean en XZ.
+			gridHelperXY.rotateOnWorldAxis( xOrigen, THREE.Math.degToRad(90) );		//Rotar la grilla para que quede ubicada en el plano XY, la rotación se hace sobre el eje X
+		
+			//SE CREA EL PLANO
+			var geometry = new THREE.PlaneGeometry( 2, 2 );
+			var material = new THREE.MeshBasicMaterial( {color: 0x2222ee, side: THREE.DoubleSide} );
+			var plane = new THREE.Mesh( geometry, material );
+			
+			//SE REALIZA LA TRASLACION DE ESE OBJETO
+			var matrixT = new THREE.Matrix4();
+			matrixT.set( 1, 0, 0, 0,
+						 0, 1, 0, 1.1,
+						 0, 0, 1, 0,
+						 0, 0, 0, 1);						 
+			plane.applyMatrix(matrixT);
+			
+			//SHAPE - QUADRATIC CURVE
+			var x = 0, y = 0;
+			var shape = new THREE.Shape();
+			shape.moveTo( x, y );
+			shape.lineTo( x + 0.2, y + 0.1 );
+			shape.lineTo( x + 2, y + 0.1 );
+			shape.quadraticCurveTo( x + 2.2, y + 0.2, x + 2.2, y + 0.2 );
+			shape.lineTo( x - 2.2, y + 5 );
+			shape.lineTo( x - 2.2, y + 0.4 );
+			shape.quadraticCurveTo( x - 2.2, y + 0.1, x - 2, y + 0.1 );
+			shape.lineTo( x - 0.2, y + 0.1 );
+			
+			var sGeometry = new THREE.ShapeGeometry( shape );
+			var sMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+			var mesh = new THREE.Mesh( sGeometry, sMaterial );
+			
+			//SHAPE - BEZIER CURVE
+			var x2 = -5, y2 = 5.5;
+			var shape2 = new THREE.Shape();
+			shape2.moveTo( x2, y2 );
+			shape2.bezierCurveTo( x2+1,  y2, x2+2, y2+0.5, x2+3, y2+1 );
+			shape2.bezierCurveTo( x2+4,  y2+1.5, x2+6, y2+1.5, x2+7, y2+1 );
+			shape2.bezierCurveTo( x2+8,  y2+0.5, x2+9, y2, x2+10, y2 );
+			shape2.lineTo( x2+10,y2+1 );
+			shape2.bezierCurveTo( x2+9,  y2+1, x2+8, y2+1.5, x2+7, y2+2 );
+			shape2.bezierCurveTo( x2+6,  y2+2.5, x2+4, y2+2.5, x2+3, y2+2 );
+			shape2.bezierCurveTo( x2+2,  y2+1.5, x2+1, y2+1, x2, y2+1 );
+			
+			var s2Geometry = new THREE.ShapeGeometry( shape2 );
+			var s2Material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+			var mesh2 = new THREE.Mesh( s2Geometry, s2Material ) ;
+			
+			//POINTS
+			var pGeometry = new THREE.Geometry();
+			var pMaterial = new THREE.PointsMaterial( { color: 0x55dd55, size: 0.5 } );
+			pGeometry.vertices.push(
+				new THREE.Vector3(-2.8,  2  , 0 ),
+				new THREE.Vector3(-3  ,  1  , 0 ),
+				new THREE.Vector3(-3  ,  0  , 0 ),
+				new THREE.Vector3(-2.5, -0.8, 0 ),
+				new THREE.Vector3(-1.5, -1  , 0 ),
+				new THREE.Vector3(-0.5, -1.5, 0 ),
+				new THREE.Vector3( 0.5, -1.5, 0 ),
+				new THREE.Vector3( 1.5, -1  , 0 ),				
+				new THREE.Vector3( 2.5, -0.8, 0 ),
+				new THREE.Vector3( 3  ,  0  , 0 ),
+				new THREE.Vector3( 3  ,  1  , 0 ),
+				new THREE.Vector3( 2.8,  2  , 0 )
+			);			
+			var point = new THREE.Points(pGeometry, pMaterial);
+			
+			//LINE
+			var lMaterial = new THREE.LineBasicMaterial({ color: 0xff1111 });
+			var lGeometry = new THREE.Geometry();
+			lGeometry.vertices.push(
+				new THREE.Vector3(-5, 5, 0 ),
+				new THREE.Vector3(-4, 5, 0 ),
+				new THREE.Vector3(-2, 6, 0 ),
+				new THREE.Vector3( 2, 6, 0 ),
+				new THREE.Vector3( 4, 5, 0 ),				
+				new THREE.Vector3( 5, 5, 0 )
+			);
+			var line = new THREE.Line( lGeometry, lMaterial );
+			
+			//CIRCLE
+			var cMaterial = new THREE.MeshBasicMaterial({ color: 0xdd3333 });
+			var cGeometry = new THREE.CircleGeometry( 0.8,32 );
+			var circle = new THREE.Mesh( cGeometry, cMaterial );
+
+			//TRANSFORMACIONES		
+			var cA = Math.cos(THREE.Math.degToRad(0));
+			var sA = Math.sin(THREE.Math.degToRad(0));
+			var matrixR = new THREE.Matrix4();
+			matrixR.set( cA,-sA, 0, 0,
+						 sA, cA, 0, 0,
+						 0,   0, 1, 0,
+						 0,   0, 0, 1);						 
+			plane.applyMatrix(matrixR);
+			
+			var matrixS = new THREE.Matrix4();
+			matrixS.set( 2.2, 0, 0, 0,
+						 0, 2.4, 0, 0,
+						 0, 0, 1, 0,
+						 0, 0, 0, 1);						 
+			plane.applyMatrix(matrixS);
+
+			matrixT.set( 1, 0, 0, -1,
+						 0, 1, 0, 2,
+						 0, 0, 1, 0,
+						 0, 0, 0, 1);						 
+			circle.applyMatrix(matrixT);
+			
+			//SE AGREGAN LOS OBJETOS A LA ESCENA
+			scene.add( gridHelperXY );		
+			scene.add( plane );
+			scene.add( mesh );
+			scene.add( mesh2 );
+			scene.add( point );
+			scene.add( line );
+			scene.add( circle );
+			
+			//SE REUBICA LA CAMARA PARA VISUALIZAR LOS OBJETOS
+			camera.translateZ( 12 );
+			camera.lookAt( origin );
+			
+			//SE RENDERIZA LA ESCENA
+			renderer.render( scene, camera );				
+		</script>
+	</body>
+</html>
