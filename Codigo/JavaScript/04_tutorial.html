@@ -1,0 +1,63 @@
+<html>
+  <head>
+    <script>
+      //Control statements
+      /*
+      if statement:
+      if(<logic expression>){
+        <statement when true>
+      }
+      
+      if-else statement:
+      if(<logic expression>){
+        <statement when true>
+      } else {
+        <statement when logic expression is false>
+      }
+      
+      if-else if-else statement:
+      if(<logic expression1>){
+        <statement when logic expression1 is true>
+      } else if(<logic expression2>){
+        <statement when logic expression2 is true>
+      } else {
+        <statement when both logic expressions are false>
+      }
+      */
+      function is_leap_year(year){
+        if(year%4 == 0){
+          return true;
+        } else{
+          return false;
+        }
+      }
+      is_leap_year(2000);
+      is_leap_year(1990);
+      
+      //switch-case statement
+      /*
+      switch(<variable>){
+        case val: <code to execute>; break;
+        case val2: <code to execute>; break;
+      }
+      */
+      function day_of_week(day){
+        switch(day){
+          case 1: return "Monday"; break; //Important! use break; after the case to avoid errors
+          case 2: return "Tuesday"; break;
+          case 3: return "Wednesday"; break;
+          case 4: return "Thursday"; break;
+          case 5: return "Friday"; break;
+          case 6: return "Saturday"; break;
+          case 7: return "Sunday"; break;
+          default: return "Invalid day of week";
+        }
+      }
+      day_of_week(1);
+      day_of_week(9);
+      
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
