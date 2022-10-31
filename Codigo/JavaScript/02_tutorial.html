@@ -9,18 +9,45 @@
       //In order to see the values you should use the console, found in the developer tools of yout browser.
       var x;
       console.log(x);
-      console.log(typeof x);
+      console.log(typeof x);  //x has not been defined
       x = 5;
       console.log(x);
-      console.log(typeof x);
+      console.log(typeof x);  //x is a number
+      x = 5.15;
+      console.log(x);
+      console.log(typeof x);  //x is still  a number
       x = "Probando";
       console.log(x);
-      console.log(typeof x);
+      console.log(typeof x);  //x is now a string
+      
+      //String variable
       var message = "Hello world";
       Console.log(message);
       message = 'Hello world';
       Console.log(message);
-      message = "\"Hello World\"";
+      message = "\"Hello World\"";  //Using \ for special characters such as " or '
+      
+      //Numeric variable
+      x = 5.15;
+      console.log(x);
+      console.log(typeof x);  //x is still  a number
+      
+      //Boolean variable 
+      var y = false;
+      console.log(typeof y);  //y is a boolean
+      //False values: undefined, null, 0, Nan, " " (Empty string)
+      var z;
+      y == z; //Check if false equals undefined.
+      function checkFalsy(z){
+        if(z){
+          console.log('True value passed');
+        }
+        else{
+          console.log('False value passed');
+        }
+      }
+      var val;
+      checkFalsy(val);
     </script>
   </head>
   <body>
