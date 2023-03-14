@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function () {
+            var scene = new BABYLON.Scene(engine);
+        
+            // Setup environment
+            var light0 = new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 2, 8), scene);
+            var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", 1, 0.8, 20, new BABYLON.Vector3(0, 0, 0), scene);
+            camera.attachControl(canvas, true);
+        
+            // Fountain object
+            var fountain = BABYLON.Mesh.CreateBox("foutain", 0.01, scene);
+        
+            // Create a particle system
+            var particleSystem = new BABYLON.ParticleSystem("particles", 200, scene);
+        
+            //Texture of each particle
+            particleSystem.particleTexture = new BABYLON.Texture("/textures/flare.png", scene);
+        
+            // Where the particles come from
+            particleSystem.emitter = fountain; // the starting object, the emitter
+            particleSystem.minEmitBox = new BABYLON.Vector3(0, 0, 0); // Starting all from
+            particleSystem.maxEmitBox = new BABYLON.Vector3(0, 0, 0); // To...
+        
+            // Colors of all particles
+            particleSystem.color1 = new BABYLON.Color4(1, 0, 0);
+            particleSystem.color2 = new BABYLON.Color4(1, 0.01, 0.4);
+            particleSystem.colorDead = new BABYLON.Color4(0.2, 0, 0.19, 0);
+        
+            // Size of each particle (random between...
+            particleSystem.minSize = 0.1;
+            particleSystem.maxSize = 0.5;
+        
+            // Life time of each particle (random between...
+            particleSystem.minLifeTime = 1;
+            particleSystem.maxLifeTime = 2;
+        
+            // Emission rate
+            particleSystem.emitRate = 2000;
+        
+            // Blend mode : BLENDMODE_ONEONE, or BLENDMODE_STANDARD
+            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+        
+            // Set the gravity of all particles
+            particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
+        
+            // Direction of each particle after it has been emitted
+            particleSystem.direction1 = new BABYLON.Vector3(-1, 4, 1);
+            particleSystem.direction2 = new BABYLON.Vector3(1, 4, -1);
+        
+            // Angular speed, in radians
+            particleSystem.minAngularSpeed = 0;
+            particleSystem.maxAngularSpeed = Math.PI;
+        
+            // Speed
+            particleSystem.minEmitPower = 10;
+            particleSystem.maxEmitPower = 0;
+            particleSystem.updateSpeed = 0.005;
+        
+            // Noise
+            var noiseTexture = new BABYLON.NoiseProceduralTexture("perlin", 256, scene);
+            noiseTexture.animationSpeedFactor = 5;
+            noiseTexture.persistence = 2;
+            noiseTexture.brightness = 0.5;
+            noiseTexture.octaves = 2;
+        
+            particleSystem.noiseTexture = noiseTexture;
+            particleSystem.noiseStrength = new BABYLON.Vector3(100, 100, 100);
+        
+            // Start the particle system
+            particleSystem.start();
+        
+            var plane = BABYLON.Mesh.CreatePlane("plane", 2);
+            var mat = new BABYLON.StandardMaterial("mat", scene);
+            plane.material = mat;
+            plane.position.x = 5;
+        
+            mat.disableLighting = true;
+            mat.backFaceCulling = false;
+            mat.emissiveTexture = noiseTexture;
+        
+            // GUI
+            var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        
+            var panel = new BABYLON.GUI.StackPanel();
+            panel.width = "220px";
+            panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+            panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            advancedTexture.addControl(panel);
+        
+            var addSlider = function(title, value, min, max, onChange, isInteger) {
+                var header = new BABYLON.GUI.TextBlock();
+                header.text = title + ": " + (isInteger ? value | 0 : value.toFixed(2));
+                header.height = "30px";
+                header.color = "white";
+                panel.addControl(header); 
+            
+                var slider = new BABYLON.GUI.Slider();
+                slider.minimum = min;
+                slider.maximum = max;
+                slider.value = value;
+                slider.height = "20px";
+                slider.width = "200px";
+                slider.onValueChangedObservable.add(function(value) {
+                    header.text = title + ": " + (isInteger ? value | 0 : value.toFixed(2));
+                    onChange(value);
+            
+                });
+                panel.addControl(slider);    
+            }
+                
+            addSlider("octaves", noiseTexture.octaves, 0, 8, (value) => {
+                noiseTexture.octaves = value;
+            }, true);
+        
+            addSlider("persistence", noiseTexture.persistence, 0, 4, (value) => {
+                noiseTexture.persistence = value;
+            });    
+        
+            addSlider("speed", noiseTexture.animationSpeedFactor, 0, 20, (value) => {
+                noiseTexture.animationSpeedFactor = value;
+            });        
+        
+            addSlider("brightness", noiseTexture.brightness, 0, 1, (value) => {
+                noiseTexture.brightness = value;
+            });        
+        
+            addSlider("Noise strength (X)", particleSystem.noiseStrength.x, 0, 100, (value) => {
+                particleSystem.noiseStrength.x = value;
+            });         
+            addSlider("Noise strength (Y)", particleSystem.noiseStrength.y, 0, 100, (value) => {
+                particleSystem.noiseStrength.y = value;
+            });         
+            addSlider("Noise strength (Z)", particleSystem.noiseStrength.z, 0, 100, (value) => {
+                particleSystem.noiseStrength.z = value;
+            });         
+        
+        
+            return scene;
+        }
+        
+                window.initFunction = async function() {
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
