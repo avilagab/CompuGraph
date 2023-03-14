@@ -227,10 +227,10 @@
             "minScaleY": 1,
             "maxScaleY": 1,
             "minEmitPower": 15,
-            "maxEmitPower": 20,
+            "maxEmitPower": 40,
             "minLifeTime": 1.5,
-            "maxLifeTime": 2.5,
-            "emitRate": 20,
+            "maxLifeTime": 5.5,
+            "emitRate": 50,
             "gravity":
             [
                 0,
