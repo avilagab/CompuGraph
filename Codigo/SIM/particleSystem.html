@@ -102,6 +102,8 @@
             pipeline.bloomKernel = 64;
             pipeline.bloomScale = 0.5;
         
+            BABYLON.ParticleHelper.BaseAssetsUrl = "https://avilagab.github.io/CompuGraph/Codigo/SIM/";
+            
             // Fire!
             BABYLON.ParticleHelper.CreateAsync("fire", scene).then((set) => {
                 set.start();
