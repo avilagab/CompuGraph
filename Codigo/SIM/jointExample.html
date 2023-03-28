@@ -1,0 +1,2338 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        
+        
+            var PhysicsImpostor = /** @class */ (function () {
+                function PhysicsImpostor(object, type, _options, _scene) {
+                    // console.log("hijacked p-impostor");
+                    if (_options === void 0) { _options = { mass: 0 }; }
+                    var _this = this;
+                    this.object = object;
+                    this.type = type;
+                    this._options = _options;
+                    this._scene = _scene;
+                    this._bodyUpdateRequired = false;
+                    this._onBeforePhysicsStepCallbacks = new Array();
+                    this._onAfterPhysicsStepCallbacks = new Array();
+                    this._onPhysicsCollideCallbacks = [];
+                    this._deltaPosition = BABYLON.Vector3.Zero();
+                    this._isDisposed = false;
+                    //temp variables for parent rotation calculations
+                    //private _mats: Array<Matrix> = [new Matrix(), new Matrix()];
+                    this._tmpQuat = new BABYLON.Quaternion();
+                    this._tmpQuat2 = new BABYLON.Quaternion();
+                    /**
+                     * this function is executed by the physics engine.
+                     */
+                    this.beforeStep = function () {
+                        if (!_this._physicsEngine) {
+                            return;
+                        }
+                        _this.object.translate(_this._deltaPosition, -1);
+                        _this._deltaRotationConjugated && _this.object.rotationQuaternion && _this.object.rotationQuaternion.multiplyToRef(_this._deltaRotationConjugated, _this.object.rotationQuaternion);
+                        _this.object.computeWorldMatrix(false);
+                        if (_this.object.parent && _this.object.rotationQuaternion) {
+                            _this.getParentsRotation();
+                            _this._tmpQuat.multiplyToRef(_this.object.rotationQuaternion, _this._tmpQuat);
+                        }
+                        else {
+                            _this._tmpQuat.copyFrom(_this.object.rotationQuaternion || new BABYLON.Quaternion());
+                        }
+                        if (!_this._options.disableBidirectionalTransformation) {
+                            _this.object.rotationQuaternion && _this._physicsEngine.getPhysicsPlugin().setPhysicsBodyTransformation(_this, /*bInfo.boundingBox.centerWorld*/ _this.object.getAbsolutePivotPoint(), _this._tmpQuat);
+                        }
+                        _this._onBeforePhysicsStepCallbacks.forEach(function (func) {
+                            func(_this);
+                        });
+                    };
+                    /**
+                     * this function is executed by the physics engine.
+                     */
+                    this.afterStep = function () {
+                        if (!_this._physicsEngine) {
+                            return;
+                        }
+                        _this._onAfterPhysicsStepCallbacks.forEach(function (func) {
+                            func(_this);
+                        });
+                        _this._physicsEngine.getPhysicsPlugin().setTransformationFromPhysicsBody(_this);
+                        // object has now its world rotation. needs to be converted to local.
+                        if (_this.object.parent && _this.object.rotationQuaternion) {
+                            _this.getParentsRotation();
+                            _this._tmpQuat.conjugateInPlace();
+                            _this._tmpQuat.multiplyToRef(_this.object.rotationQuaternion, _this.object.rotationQuaternion);
+                        }
+                        // take the position set and make it the absolute position of this object.
+                        _this.object.setAbsolutePosition(_this.object.position);
+                        _this._deltaRotation && _this.object.rotationQuaternion && _this.object.rotationQuaternion.multiplyToRef(_this._deltaRotation, _this.object.rotationQuaternion);
+                        _this.object.translate(_this._deltaPosition, 1);
+                    };
+                    /**
+                     * Legacy collision detection event support
+                     */
+                    this.onCollideEvent = null;
+                    //event and body object due to cannon's event-based architecture.
+                    this.onCollide = function (e) {
+                        if (!_this._onPhysicsCollideCallbacks.length && !_this.onCollideEvent) {
+                            return;
+                        }
+                        if (!_this._physicsEngine) {
+                            return;
+                        }
+                        var otherImpostor = _this._physicsEngine.getImpostorWithPhysicsBody(e.body);
+                        if (otherImpostor) {
+                            // Legacy collision detection event support
+                            if (_this.onCollideEvent) {
+                                _this.onCollideEvent(_this, otherImpostor);
+                            }
+                            _this._onPhysicsCollideCallbacks.filter(function (obj) {
+                                return obj.otherImpostors.indexOf(otherImpostor) !== -1;
+                            }).forEach(function (obj) {
+                                obj.callback(_this, otherImpostor);
+                            });
+                        }
+                    };
+                    //sanity check!
+                    if (!this.object) {
+                        BABYLON.Tools.Error("No object was provided. A physics object is obligatory");
+                        return;
+                    }
+                    //legacy support for old syntax.
+                    if (!this._scene && object.getScene) {
+                        this._scene = object.getScene();
+                    }
+                    if (!this._scene) {
+                        return;
+                    }
+                    this._physicsEngine = this._scene.getPhysicsEngine();
+                    if (!this._physicsEngine) {
+                        BABYLON.Tools.Error("Physics not enabled. Please use scene.enablePhysics(...) before creating impostors.");
+                    }
+                    else {
+                        //set the object's quaternion, if not set
+                        if (!this.object.rotationQuaternion) {
+                            if (this.object.rotation) {
+                                this.object.rotationQuaternion = BABYLON.Quaternion.RotationYawPitchRoll(this.object.rotation.y, this.object.rotation.x, this.object.rotation.z);
+                            }
+                            else {
+                                this.object.rotationQuaternion = new BABYLON.Quaternion();
+                            }
+                        }
+                        //default options params
+                        this._options.mass = (_options.mass === void 0) ? 0 : _options.mass;
+                        this._options.friction = (_options.friction === void 0) ? 0.2 : _options.friction;
+                        this._options.restitution = (_options.restitution === void 0) ? 0.2 : _options.restitution;
+                        // wingnut adds collidesWith and belongsTo - 2 lines
+                        this._options.collidesWith = (_options.collidesWith === void 0x00) ? 0x00 : _options.collidesWith;
+                        this._options.belongsTo = (_options.belongsTo === void 0x00) ? 0x00 : _options.belongsTo;
+                        this._joints = [];
+                        //If the mesh has a parent, don't initialize the physicsBody. Instead wait for the parent to do that.
+                        if (!this.object.parent || this._options.ignoreParent) {
+                            this._init();
+                        }
+                        else if (this.object.parent.physicsImpostor) {
+                            BABYLON.Tools.Warn("You must affect impostors to children before affecting impostor to parent.");
+                        }
+                    }
+                }
+                Object.defineProperty(PhysicsImpostor.prototype, "isDisposed", {
+                    get: function () {
+                        return this._isDisposed;
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                Object.defineProperty(PhysicsImpostor.prototype, "mass", {
+                    get: function () {
+                        return this._physicsEngine ? this._physicsEngine.getPhysicsPlugin().getBodyMass(this) : 0;
+                    },
+                    set: function (value) {
+                        this.setMass(value);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                Object.defineProperty(PhysicsImpostor.prototype, "friction", {
+                    get: function () {
+                        return this._physicsEngine ? this._physicsEngine.getPhysicsPlugin().getBodyFriction(this) : 0;
+                    },
+                    set: function (value) {
+                        if (!this._physicsEngine) {
+                            return;
+                        }
+                        this._physicsEngine.getPhysicsPlugin().setBodyFriction(this, value);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                Object.defineProperty(PhysicsImpostor.prototype, "restitution", {
+                    get: function () {
+                        return this._physicsEngine ? this._physicsEngine.getPhysicsPlugin().getBodyRestitution(this) : 0;
+                    },
+                    set: function (value) {
+                        if (!this._physicsEngine) {
+                            return;
+                        }
+                        this._physicsEngine.getPhysicsPlugin().setBodyRestitution(this, value);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                // wingnut adds collidesWith and belongsTo
+                Object.defineProperty(PhysicsImpostor.prototype, "collidesWith", {
+                    get: function () {
+                        return this._physicsEngine ? this._physicsEngine.getPhysicsPlugin().getBodyCollidesWith(this) : 0;
+                    },
+                    set: function (value) {
+                        this.setCollidesWith(value);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                Object.defineProperty(PhysicsImpostor.prototype, "belongsTo", {
+                    get: function () {
+                        return this._physicsEngine ? this._physicsEngine.getPhysicsPlugin().getBodyBelongsTo(this) : 0;
+                    },
+                    set: function (value) {
+                        this.setBelongsTo(value);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+        
+                /**
+                 * This function will completly initialize this impostor.
+                 * It will create a new body - but only if this mesh has no parent.
+                 * If it has, this impostor will not be used other than to define the impostor
+                 * of the child mesh.
+                 */
+                PhysicsImpostor.prototype._init = function () {
+                    if (!this._physicsEngine) {
+                        return;
+                    }
+                    this._physicsEngine.removeImpostor(this);
+                    this.physicsBody = null;
+                    this._parent = this._parent || this._getPhysicsParent();
+                    if (!this._isDisposed && (!this.parent || this._options.ignoreParent)) {
+                        this._physicsEngine.addImpostor(this);
+                    }
+                };
+                PhysicsImpostor.prototype._getPhysicsParent = function () {
+                    if (this.object.parent instanceof BABYLON.AbstractMesh) {
+                        var parentMesh = this.object.parent;
+                        return parentMesh.physicsImpostor;
+                    }
+                    return null;
+                };
+                /**
+                 * Should a new body be generated.
+                 */
+                PhysicsImpostor.prototype.isBodyInitRequired = function () {
+                    return this._bodyUpdateRequired || (!this._physicsBody && !this._parent);
+                };
+                PhysicsImpostor.prototype.setScalingUpdated = function (updated) {
+                    this.forceUpdate();
+                };
+                /**
+                 * Force a regeneration of this or the parent's impostor's body.
+                 * Use under cautious - This will remove all joints already implemented.
+                 */
+                PhysicsImpostor.prototype.forceUpdate = function () {
+                    this._init();
+                    if (this.parent && !this._options.ignoreParent) {
+                        this.parent.forceUpdate();
+                    }
+                };
+                Object.defineProperty(PhysicsImpostor.prototype, "physicsBody", {
+                    /*public get mesh(): AbstractMesh {
+                        return this._mesh;
+                    }*/
+                    /**
+                     * Gets the body that holds this impostor. Either its own, or its parent.
+                     */
+                    get: function () {
+                        return (this._parent && !this._options.ignoreParent) ? this._parent.physicsBody : this._physicsBody;
+                    },
+                    /**
+                     * Set the physics body. Used mainly by the physics engine/plugin
+                     */
+                    set: function (physicsBody) {
+                        if (this._physicsBody && this._physicsEngine) {
+                            this._physicsEngine.getPhysicsPlugin().removePhysicsBody(this);
+                        }
+                        this._physicsBody = physicsBody;
+                        this.resetUpdateFlags();
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                Object.defineProperty(PhysicsImpostor.prototype, "parent", {
+                    get: function () {
+                        return !this._options.ignoreParent && this._parent ? this._parent : null;
+                    },
+                    set: function (value) {
+                        this._parent = value;
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                PhysicsImpostor.prototype.resetUpdateFlags = function () {
+                    this._bodyUpdateRequired = false;
+                };
+                PhysicsImpostor.prototype.getObjectExtendSize = function () {
+                    if (this.object.getBoundingInfo) {
+                        var q = this.object.rotationQuaternion;
+                        //reset rotation
+                        this.object.rotationQuaternion = PhysicsImpostor.IDENTITY_QUATERNION;
+                        //calculate the world matrix with no rotation
+                        this.object.computeWorldMatrix && this.object.computeWorldMatrix(true);
+                        var boundingInfo = this.object.getBoundingInfo();
+                        var size = boundingInfo.boundingBox.extendSizeWorld.scale(2);
+                        //bring back the rotation
+                        this.object.rotationQuaternion = q;
+                        //calculate the world matrix with the new rotation
+                        this.object.computeWorldMatrix && this.object.computeWorldMatrix(true);
+                        return size;
+                    }
+                    else {
+                        return PhysicsImpostor.DEFAULT_OBJECT_SIZE;
+                    }
+                };
+                PhysicsImpostor.prototype.getObjectCenter = function () {
+                    if (this.object.getBoundingInfo) {
+                        var boundingInfo = this.object.getBoundingInfo();
+                        return boundingInfo.boundingBox.centerWorld;
+                    }
+                    else {
+                        return this.object.position;
+                    }
+                };
+                /**
+                 * Get a specific parametes from the options parameter.
+                 */
+                PhysicsImpostor.prototype.getParam = function (paramName) {
+                    return this._options[paramName];
+                };
+                /**
+                 * Sets a specific parameter in the options given to the physics plugin
+                 */
+                PhysicsImpostor.prototype.setParam = function (paramName, value) {
+                    this._options[paramName] = value;
+                    this._bodyUpdateRequired = true;
+                };
+                /**
+                 * Specifically change the body's mass option. Won't recreate the physics body object
+                 */
+                PhysicsImpostor.prototype.setMass = function (mass) {
+                    if (this.getParam("mass") !== mass) {
+                        this.setParam("mass", mass);
+                    }
+                    if (this._physicsEngine) {
+                        this._physicsEngine.getPhysicsPlugin().setBodyMass(this, mass);
+                    }
+                };
+                PhysicsImpostor.prototype.getLinearVelocity = function () {
+                    return this._physicsEngine ? this._physicsEngine.getPhysicsPlugin().getLinearVelocity(this) : BABYLON.Vector3.Zero();
+                };
+                PhysicsImpostor.prototype.setLinearVelocity = function (velocity) {
+                    if (this._physicsEngine) {
+                        this._physicsEngine.getPhysicsPlugin().setLinearVelocity(this, velocity);
+                    }
+                };
+                PhysicsImpostor.prototype.getAngularVelocity = function () {
+                    return this._physicsEngine ? this._physicsEngine.getPhysicsPlugin().getAngularVelocity(this) : BABYLON.Vector3.Zero();
+                };
+                PhysicsImpostor.prototype.setAngularVelocity = function (velocity) {
+                    if (this._physicsEngine) {
+                        this._physicsEngine.getPhysicsPlugin().setAngularVelocity(this, velocity);
+                    }
+                };
+                /**
+                 * Execute a function with the physics plugin native code.
+                 * Provide a function the will have two variables - the world object and the physics body object.
+                 */
+                PhysicsImpostor.prototype.executeNativeFunction = function (func) {
+                    if (this._physicsEngine) {
+                        func(this._physicsEngine.getPhysicsPlugin().world, this.physicsBody);
+                    }
+                };
+                /**
+                 * Register a function that will be executed before the physics world is stepping forward.
+                 */
+                PhysicsImpostor.prototype.registerBeforePhysicsStep = function (func) {
+                    this._onBeforePhysicsStepCallbacks.push(func);
+                };
+                PhysicsImpostor.prototype.unregisterBeforePhysicsStep = function (func) {
+                    var index = this._onBeforePhysicsStepCallbacks.indexOf(func);
+                    if (index > -1) {
+                        this._onBeforePhysicsStepCallbacks.splice(index, 1);
+                    }
+                    else {
+                        BABYLON.Tools.Warn("Function to remove was not found");
+                    }
+                };
+                /**
+                 * Register a function that will be executed after the physics step
+                 */
+                PhysicsImpostor.prototype.registerAfterPhysicsStep = function (func) {
+                    this._onAfterPhysicsStepCallbacks.push(func);
+                };
+                PhysicsImpostor.prototype.unregisterAfterPhysicsStep = function (func) {
+                    var index = this._onAfterPhysicsStepCallbacks.indexOf(func);
+                    if (index > -1) {
+                        this._onAfterPhysicsStepCallbacks.splice(index, 1);
+                    }
+                    else {
+                        BABYLON.Tools.Warn("Function to remove was not found");
+                    }
+                };
+                /**
+                 * register a function that will be executed when this impostor collides against a different body.
+                 */
+                PhysicsImpostor.prototype.registerOnPhysicsCollide = function (collideAgainst, func) {
+                    var collidedAgainstList = collideAgainst instanceof Array ? collideAgainst : [collideAgainst];
+                    this._onPhysicsCollideCallbacks.push({ callback: func, otherImpostors: collidedAgainstList });
+                };
+                PhysicsImpostor.prototype.unregisterOnPhysicsCollide = function (collideAgainst, func) {
+                    var collidedAgainstList = collideAgainst instanceof Array ? collideAgainst : [collideAgainst];
+                    var index = this._onPhysicsCollideCallbacks.indexOf({ callback: func, otherImpostors: collidedAgainstList });
+                    if (index > -1) {
+                        this._onPhysicsCollideCallbacks.splice(index, 1);
+                    }
+                    else {
+                        BABYLON.Tools.Warn("Function to remove was not found");
+                    }
+                };
+                PhysicsImpostor.prototype.getParentsRotation = function () {
+                    var parent = this.object.parent;
+                    this._tmpQuat.copyFromFloats(0, 0, 0, 1);
+                    while (parent) {
+                        if (parent.rotationQuaternion) {
+                            this._tmpQuat2.copyFrom(parent.rotationQuaternion);
+                        }
+                        else {
+                            BABYLON.Quaternion.RotationYawPitchRollToRef(parent.rotation.y, parent.rotation.x, parent.rotation.z, this._tmpQuat2);
+                        }
+                        this._tmpQuat.multiplyToRef(this._tmpQuat2, this._tmpQuat);
+                        parent = parent.parent;
+                    }
+                    return this._tmpQuat;
+                };
+                /**
+                 * Apply a force
+                 */
+                PhysicsImpostor.prototype.applyForce = function (force, contactPoint) {
+                    if (this._physicsEngine) {
+                        this._physicsEngine.getPhysicsPlugin().applyForce(this, force, contactPoint);
+                    }
+                    return this;
+                };
+                /**
+                 * Apply an impulse
+                 */
+                PhysicsImpostor.prototype.applyImpulse = function (force, contactPoint) {
+                    if (this._physicsEngine) {
+                        this._physicsEngine.getPhysicsPlugin().applyImpulse(this, force, contactPoint);
+                    }
+                    return this;
+                };
+                /**
+                 * A help function to create a joint.
+                 */
+                PhysicsImpostor.prototype.createJoint = function (otherImpostor, jointType, jointData) {
+                    var joint = new BABYLON.PhysicsJoint(jointType, jointData);
+                    this.addJoint(otherImpostor, joint);
+                    return this;
+                };
+                /**
+                 * Add a joint to this impostor with a different impostor.
+                 */
+                PhysicsImpostor.prototype.addJoint = function (otherImpostor, joint) {
+                    this._joints.push({
+                        otherImpostor: otherImpostor,
+                        joint: joint
+                    });
+                    if (this._physicsEngine) {
+                        this._physicsEngine.addJoint(this, otherImpostor, joint);
+                    }
+                    return this;
+                };
+                /**
+                 * Will keep this body still, in a sleep mode.
+                 */
+                PhysicsImpostor.prototype.sleep = function () {
+                    if (this._physicsEngine) {
+                        this._physicsEngine.getPhysicsPlugin().sleepBody(this);
+                    }
+                    return this;
+                };
+                /**
+                 * Wake the body up.
+                 */
+                PhysicsImpostor.prototype.wakeUp = function () {
+                    if (this._physicsEngine) {
+                        this._physicsEngine.getPhysicsPlugin().wakeUpBody(this);
+                    }
+                    return this;
+                };
+                PhysicsImpostor.prototype.clone = function (newObject) {
+                    if (!newObject)
+                        return null;
+                    return new PhysicsImpostor(newObject, this.type, this._options, this._scene);
+                };
+                PhysicsImpostor.prototype.dispose = function () {
+                    var _this = this;
+                    //no dispose if no physics engine is available.
+                    if (!this._physicsEngine) {
+                        return;
+                    }
+                    this._joints.forEach(function (j) {
+                        if (_this._physicsEngine) {
+                            _this._physicsEngine.removeJoint(_this, j.otherImpostor, j.joint);
+                        }
+                    });
+                    //dispose the physics body
+                    this._physicsEngine.removeImpostor(this);
+                    if (this.parent) {
+                        this.parent.forceUpdate();
+                    }
+                    else {
+                        /*this._object.getChildMeshes().forEach(function(mesh) {
+                            if (mesh.physicsImpostor) {
+                                if (disposeChildren) {
+                                    mesh.physicsImpostor.dispose();
+                                    mesh.physicsImpostor = null;
+                                }
+                            }
+                        })*/
+                    }
+                    this._isDisposed = true;
+                };
+                PhysicsImpostor.prototype.setDeltaPosition = function (position) {
+                    this._deltaPosition.copyFrom(position);
+                };
+                PhysicsImpostor.prototype.setDeltaRotation = function (rotation) {
+                    if (!this._deltaRotation) {
+                        this._deltaRotation = new BABYLON.Quaternion();
+                    }
+                    this._deltaRotation.copyFrom(rotation);
+                    this._deltaRotationConjugated = this._deltaRotation.conjugate();
+                };
+                PhysicsImpostor.prototype.getBoxSizeToRef = function (result) {
+                    if (this._physicsEngine) {
+                        this._physicsEngine.getPhysicsPlugin().getBoxSizeToRef(this, result);
+                    }
+                    return this;
+                };
+                PhysicsImpostor.prototype.getRadius = function () {
+                    return this._physicsEngine ? this._physicsEngine.getPhysicsPlugin().getRadius(this) : 0;
+                };
+                /**
+                 * Sync a bone with this impostor
+                 * @param bone The bone to sync to the impostor.
+                 * @param boneMesh The mesh that the bone is influencing.
+                 * @param jointPivot The pivot of the joint / bone in local space.
+                 * @param distToJoint Optional distance from the impostor to the joint.
+                 * @param adjustRotation Optional quaternion for adjusting the local rotation of the bone.
+                 */
+                PhysicsImpostor.prototype.syncBoneWithImpostor = function (bone, boneMesh, jointPivot, distToJoint, adjustRotation) {
+                    var tempVec = PhysicsImpostor._tmpVecs[0];
+                    var mesh = this.object;
+                    if (mesh.rotationQuaternion) {
+                        if (adjustRotation) {
+                            var tempQuat = PhysicsImpostor._tmpQuat;
+                            mesh.rotationQuaternion.multiplyToRef(adjustRotation, tempQuat);
+                            bone.setRotationQuaternion(tempQuat, BABYLON.Space.WORLD, boneMesh);
+                        }
+                        else {
+                            bone.setRotationQuaternion(mesh.rotationQuaternion, BABYLON.Space.WORLD, boneMesh);
+                        }
+                    }
+                    tempVec.x = 0;
+                    tempVec.y = 0;
+                    tempVec.z = 0;
+                    if (jointPivot) {
+                        tempVec.x = jointPivot.x;
+                        tempVec.y = jointPivot.y;
+                        tempVec.z = jointPivot.z;
+                        bone.getDirectionToRef(tempVec, boneMesh, tempVec);
+                        if (distToJoint === undefined || distToJoint === null) {
+                            distToJoint = jointPivot.length();
+                        }
+                        tempVec.x *= distToJoint;
+                        tempVec.y *= distToJoint;
+                        tempVec.z *= distToJoint;
+                    }
+                    if (bone.getParent()) {
+                        tempVec.addInPlace(mesh.getAbsolutePosition());
+                        bone.setAbsolutePosition(tempVec, boneMesh);
+                    }
+                    else {
+                        boneMesh.setAbsolutePosition(mesh.getAbsolutePosition());
+                        boneMesh.position.x -= tempVec.x;
+                        boneMesh.position.y -= tempVec.y;
+                        boneMesh.position.z -= tempVec.z;
+                    }
+                };
+                /**
+                 * Sync impostor to a bone
+                 * @param bone The bone that the impostor will be synced to.
+                 * @param boneMesh The mesh that the bone is influencing.
+                 * @param jointPivot The pivot of the joint / bone in local space.
+                 * @param distToJoint Optional distance from the impostor to the joint.
+                 * @param adjustRotation Optional quaternion for adjusting the local rotation of the bone.
+                 * @param boneAxis Optional vector3 axis the bone is aligned with
+                 */
+                PhysicsImpostor.prototype.syncImpostorWithBone = function (bone, boneMesh, jointPivot, distToJoint, adjustRotation, boneAxis) {
+                    var mesh = this.object;
+                    if (mesh.rotationQuaternion) {
+                        if (adjustRotation) {
+                            var tempQuat = PhysicsImpostor._tmpQuat;
+                            bone.getRotationQuaternionToRef(BABYLON.Space.WORLD, boneMesh, tempQuat);
+                            tempQuat.multiplyToRef(adjustRotation, mesh.rotationQuaternion);
+                        }
+                        else {
+                            bone.getRotationQuaternionToRef(BABYLON.Space.WORLD, boneMesh, mesh.rotationQuaternion);
+                        }
+                    }
+                    var pos = PhysicsImpostor._tmpVecs[0];
+                    var boneDir = PhysicsImpostor._tmpVecs[1];
+                    if (!boneAxis) {
+                        boneAxis = PhysicsImpostor._tmpVecs[2];
+                        boneAxis.x = 0;
+                        boneAxis.y = 1;
+                        boneAxis.z = 0;
+                    }
+                    bone.getDirectionToRef(boneAxis, boneMesh, boneDir);
+                    bone.getAbsolutePositionToRef(boneMesh, pos);
+                    if ((distToJoint === undefined || distToJoint === null) && jointPivot) {
+                        distToJoint = jointPivot.length();
+                    }
+                    if (distToJoint !== undefined && distToJoint !== null) {
+                        pos.x += boneDir.x * distToJoint;
+                        pos.y += boneDir.y * distToJoint;
+                        pos.z += boneDir.z * distToJoint;
+                    }
+                    mesh.setAbsolutePosition(pos);
+                };
+                PhysicsImpostor.DEFAULT_OBJECT_SIZE = new BABYLON.Vector3(1, 1, 1);
+                PhysicsImpostor.IDENTITY_QUATERNION = BABYLON.Quaternion.Identity();
+                PhysicsImpostor._tmpVecs = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
+                PhysicsImpostor._tmpQuat = BABYLON.Quaternion.Identity();
+                //Impostor types
+                PhysicsImpostor.NoImpostor = 0;
+                PhysicsImpostor.SphereImpostor = 1;
+                PhysicsImpostor.BoxImpostor = 2;
+                PhysicsImpostor.PlaneImpostor = 3;
+                PhysicsImpostor.MeshImpostor = 4;
+                PhysicsImpostor.CylinderImpostor = 7;
+                PhysicsImpostor.ParticleImpostor = 8;
+                PhysicsImpostor.HeightmapImpostor = 9;
+                return PhysicsImpostor;
+            }());
+            BABYLON.PhysicsImpostor = PhysicsImpostor;
+        
+        
+        
+        
+            var OimoJSPlugin = /** @class */ (function () {
+                function OimoJSPlugin(iterations) {
+                    // console.log('hijacked oimo plugin');
+                    this.name = "OimoJSPlugin";
+                    this._tmpImpostorsArray = [];
+                    this._tmpPositionVector = BABYLON.Vector3.Zero();
+                    this.BJSOIMO = typeof OIMO !== 'undefined' ? OIMO : (typeof require !== 'undefined' ? require('./Oimo') : undefined);
+                    this.world = new this.BJSOIMO.World(1 / 60, 2, iterations, true);
+                    // this.world.worldscale(1);
+                    this.world.clear();
+                    //making sure no stats are calculated
+                    this.world.isNoStat = true;
+                }
+                OimoJSPlugin.prototype.setGravity = function (gravity) {
+                    this.world.gravity.copy(gravity);
+                };
+                OimoJSPlugin.prototype.setTimeStep = function (timeStep) {
+                    this.world.timeStep = timeStep;
+                };
+                OimoJSPlugin.prototype.getTimeStep = function () {
+                    return this.world.timeStep;
+                };
+                OimoJSPlugin.prototype.executeStep = function (delta, impostors) {
+                    var _this = this;
+                    impostors.forEach(function (impostor) {
+                        impostor.beforeStep();
+                    });
+                    this.world.step();
+                    impostors.forEach(function (impostor) {
+                        impostor.afterStep();
+                        //update the ordered impostors array
+                        _this._tmpImpostorsArray[impostor.uniqueId] = impostor;
+                    });
+                    //check for collisions
+                    var contact = this.world.contacts;
+                    while (contact !== null) {
+                        if (contact.touching && !contact.body1.sleeping && !contact.body2.sleeping) {
+                            contact = contact.next;
+                            continue;
+                        }
+                        //is this body colliding with any other? get the impostor
+                        var mainImpostor = this._tmpImpostorsArray[+contact.body1.name];
+                        var collidingImpostor = this._tmpImpostorsArray[+contact.body2.name];
+                        if (!mainImpostor || !collidingImpostor) {
+                            contact = contact.next;
+                            continue;
+                        }
+                        mainImpostor.onCollide({ body: collidingImpostor.physicsBody });
+                        collidingImpostor.onCollide({ body: mainImpostor.physicsBody });
+                        contact = contact.next;
+                    }
+                };
+                OimoJSPlugin.prototype.applyImpulse = function (impostor, force, contactPoint) {
+                    var mass = impostor.physicsBody.massInfo.mass;
+                    impostor.physicsBody.applyImpulse(contactPoint.scale(this.BJSOIMO.INV_SCALE), force.scale(this.BJSOIMO.INV_SCALE * mass));
+                };
+                OimoJSPlugin.prototype.applyForce = function (impostor, force, contactPoint) {
+                    BABYLON.Tools.Warn("Oimo doesn't support applying force. Using impule instead.");
+                    this.applyImpulse(impostor, force, contactPoint);
+                };
+                OimoJSPlugin.prototype.generatePhysicsBody = function (impostor) {
+                    var _this = this;
+                    //parent-child relationship. Does this impostor has a parent impostor?
+                    if (impostor.parent) {
+                        if (impostor.physicsBody) {
+                            this.removePhysicsBody(impostor);
+                            //TODO is that needed?
+                            impostor.forceUpdate();
+                        }
+                        return;
+                    }
+                    if (impostor.isBodyInitRequired()) {
+                        var bodyConfig = {
+                            name: impostor.uniqueId,
+                            //Oimo must have mass, also for static objects.
+                            config: [impostor.getParam("mass") || 1, impostor.getParam("friction"), impostor.getParam("restitution")],
+                            size: [],
+                            type: [],
+                            pos: [],
+                            posShape: [],
+                            rot: [],
+                            rotShape: [],
+                            move: impostor.getParam("mass") !== 0,
+                            density: impostor.getParam("mass"),
+                            friction: impostor.getParam("friction"),
+                            restitution: impostor.getParam("restitution"),
+                            //Supporting older versions of Oimo
+                            world: this.world
+                        };
+                        var impostors = [impostor];
+                        var addToArray = function (parent) {
+                            if (!parent.getChildMeshes)
+                                return;
+                            parent.getChildMeshes().forEach(function (m) {
+                                if (m.physicsImpostor) {
+                                    impostors.push(m.physicsImpostor);
+                                    //m.physicsImpostor._init();
+                                }
+                            });
+                        };
+                        addToArray(impostor.object);
+                        var checkWithEpsilon_1 = function (value) {
+                            return Math.max(value, BABYLON.PhysicsEngine.Epsilon);
+                        };
+                        impostors.forEach(function (i) {
+                            if (!i.object.rotationQuaternion) {
+                                return;
+                            }
+                            //get the correct bounding box
+                            var oldQuaternion = i.object.rotationQuaternion;
+                            var rot = oldQuaternion.toEulerAngles();
+                            var extendSize = i.getObjectExtendSize();
+                            var radToDeg = 57.295779513082320876;
+                            if (i === impostor) {
+                                var center = impostor.getObjectCenter();
+                                impostor.object.getAbsolutePivotPoint().subtractToRef(center, _this._tmpPositionVector);
+                                _this._tmpPositionVector.divideInPlace(impostor.object.scaling);
+                                //Can also use Array.prototype.push.apply
+                                bodyConfig.pos.push(center.x);
+                                bodyConfig.pos.push(center.y);
+                                bodyConfig.pos.push(center.z);
+                                bodyConfig.posShape.push(0, 0, 0);
+                                //tmp solution
+                                bodyConfig.rot.push(rot.x * radToDeg);
+                                bodyConfig.rot.push(rot.y * radToDeg);
+                                bodyConfig.rot.push(rot.z * radToDeg);
+                                bodyConfig.rotShape.push(0, 0, 0);
+                            }
+                            else {
+                                var localPosition = i.object.getAbsolutePosition().subtract(impostor.object.getAbsolutePosition());
+                                bodyConfig.posShape.push(localPosition.x);
+                                bodyConfig.posShape.push(localPosition.y);
+                                bodyConfig.posShape.push(localPosition.z);
+                                bodyConfig.pos.push(0, 0, 0);
+                                //tmp solution until https://github.com/lo-th/OIMO.js/pull/37 is merged
+                                bodyConfig.rot.push(0);
+                                bodyConfig.rot.push(0);
+                                bodyConfig.rot.push(0);
+                                bodyConfig.rotShape.push(rot.x * radToDeg);
+                                bodyConfig.rotShape.push(rot.y * radToDeg);
+                                bodyConfig.rotShape.push(rot.z * radToDeg);
+                            }
+                            // register mesh
+                            switch (i.type) {
+                                case BABYLON.PhysicsImpostor.ParticleImpostor:
+                                    BABYLON.Tools.Warn("No Particle support in OIMO.js. using SphereImpostor instead");
+                                case BABYLON.PhysicsImpostor.SphereImpostor:
+                                    var radiusX = extendSize.x;
+                                    var radiusY = extendSize.y;
+                                    var radiusZ = extendSize.z;
+                                    var size = Math.max(checkWithEpsilon_1(radiusX), checkWithEpsilon_1(radiusY), checkWithEpsilon_1(radiusZ)) / 2;
+                                    bodyConfig.type.push('sphere');
+                                    //due to the way oimo works with compounds, add 3 times
+                                    bodyConfig.size.push(size);
+                                    bodyConfig.size.push(size);
+                                    bodyConfig.size.push(size);
+                                    break;
+                                case BABYLON.PhysicsImpostor.CylinderImpostor:
+                                    var sizeX = checkWithEpsilon_1(extendSize.x) / 2;
+                                    var sizeY = checkWithEpsilon_1(extendSize.y);
+                                    bodyConfig.type.push('cylinder');
+                                    bodyConfig.size.push(sizeX);
+                                    bodyConfig.size.push(sizeY);
+                                    //due to the way oimo works with compounds, add one more value.
+                                    bodyConfig.size.push(sizeY);
+                                    break;
+                                case BABYLON.PhysicsImpostor.PlaneImpostor:
+                                case BABYLON.PhysicsImpostor.BoxImpostor:
+                                default:
+                                    var sizeX = checkWithEpsilon_1(extendSize.x);
+                                    var sizeY = checkWithEpsilon_1(extendSize.y);
+                                    var sizeZ = checkWithEpsilon_1(extendSize.z);
+                                    bodyConfig.type.push('box');
+                                    //if (i === impostor) {
+                                    bodyConfig.size.push(sizeX);
+                                    bodyConfig.size.push(sizeY);
+                                    bodyConfig.size.push(sizeZ);
+                                    //} else {
+                                    //    bodyConfig.size.push(0,0,0);
+                                    //}
+                                    break;
+                            }
+                            //actually not needed, but hey...
+                            i.object.rotationQuaternion = oldQuaternion;
+                        });
+                        impostor.physicsBody = this.world.add(bodyConfig);
+                    }
+                    else {
+                        this._tmpPositionVector.copyFromFloats(0, 0, 0);
+                    }
+                    impostor.setDeltaPosition(this._tmpPositionVector);
+                    //this._tmpPositionVector.addInPlace(impostor.mesh.getBoundingInfo().boundingBox.center);
+                    //this.setPhysicsBodyTransformation(impostor, this._tmpPositionVector, impostor.mesh.rotationQuaternion);
+                };
+                OimoJSPlugin.prototype.removePhysicsBody = function (impostor) {
+                    //impostor.physicsBody.dispose();
+                    //Same as : (older oimo versions)
+                    this.world.removeRigidBody(impostor.physicsBody);
+                };
+                OimoJSPlugin.prototype.generateJoint = function (impostorJoint) {
+                    var mainBody = impostorJoint.mainImpostor.physicsBody;
+                    var connectedBody = impostorJoint.connectedImpostor.physicsBody;
+                    if (!mainBody || !connectedBody) {
+                        return;
+                    }
+                    var jointData = impostorJoint.joint.jointData;
+                    var options = jointData.nativeParams || {};
+                    var type;
+                    var nativeJointData = {
+                        body1: mainBody,
+                        body2: connectedBody,
+                        axe1: options.axe1 || (jointData.mainAxis ? jointData.mainAxis.asArray() : null),
+                        axe2: options.axe2 || (jointData.connectedAxis ? jointData.connectedAxis.asArray() : null),
+                        pos1: options.pos1 || (jointData.mainPivot ? jointData.mainPivot.asArray() : null),
+                        pos2: options.pos2 || (jointData.connectedPivot ? jointData.connectedPivot.asArray() : null),
+                        min: options.min,
+                        max: options.max,
+                        collision: options.collision || jointData.collision,
+                        spring: options.spring,
+                        //supporting older version of Oimo
+                        world: this.world
+                    };
+                    switch (impostorJoint.joint.type) {
+                        case BABYLON.PhysicsJoint.BallAndSocketJoint:
+                            type = "jointBall";
+                            break;
+                        case BABYLON.PhysicsJoint.SpringJoint:
+                            BABYLON.Tools.Warn("OIMO.js doesn't support Spring Constraint. Simulating using DistanceJoint instead");
+                            var springData = jointData;
+                            nativeJointData.min = springData.length || nativeJointData.min;
+                            //Max should also be set, just make sure it is at least min
+                            nativeJointData.max = Math.max(nativeJointData.min, nativeJointData.max);
+                        case BABYLON.PhysicsJoint.DistanceJoint:
+                            type = "jointDistance";
+                            nativeJointData.max = jointData.maxDistance;
+                            break;
+                        case BABYLON.PhysicsJoint.PrismaticJoint:
+                            type = "jointPrisme";
+                            break;
+                        case BABYLON.PhysicsJoint.SliderJoint:
+                            type = "jointSlide";
+                            break;
+                        case BABYLON.PhysicsJoint.WheelJoint:
+                            type = "jointWheel";
+                            break;
+                        case BABYLON.PhysicsJoint.HingeJoint:
+                        default:
+                            type = "jointHinge";
+                            break;
+                    }
+                    nativeJointData.type = type;
+                    impostorJoint.joint.physicsJoint = this.world.add(nativeJointData);
+                };
+                OimoJSPlugin.prototype.removeJoint = function (impostorJoint) {
+                    //Bug in Oimo prevents us from disposing a joint in the playground
+                    //joint.joint.physicsJoint.dispose();
+                    //So we will bruteforce it!
+                    try {
+                        this.world.removeJoint(impostorJoint.joint.physicsJoint);
+                    }
+                    catch (e) {
+                        BABYLON.Tools.Warn(e);
+                    }
+                };
+                OimoJSPlugin.prototype.isSupported = function () {
+                    return this.BJSOIMO !== undefined;
+                };
+                OimoJSPlugin.prototype.setTransformationFromPhysicsBody = function (impostor) {
+                    if (!impostor.physicsBody.sleeping) {
+                        //TODO check that
+                        if (impostor.physicsBody.shapes.next) {
+                            var parentShape = this._getLastShape(impostor.physicsBody);
+                            impostor.object.position.x = parentShape.position.x * this.BJSOIMO.WORLD_SCALE;
+                            impostor.object.position.y = parentShape.position.y * this.BJSOIMO.WORLD_SCALE;
+                            impostor.object.position.z = parentShape.position.z * this.BJSOIMO.WORLD_SCALE;
+                        }
+                        else {
+                            impostor.object.position.copyFrom(impostor.physicsBody.getPosition());
+                        }
+                        if (impostor.object.rotationQuaternion) {
+                            impostor.object.rotationQuaternion.copyFrom(impostor.physicsBody.getQuaternion());
+                            impostor.object.rotationQuaternion.normalize();
+                        }
+                    }
+                };
+                OimoJSPlugin.prototype.setPhysicsBodyTransformation = function (impostor, newPosition, newRotation) {
+                    var body = impostor.physicsBody;
+                    body.position.copy(newPosition);
+                    body.orientation.copy(newRotation);
+                    body.syncShapes();
+                    body.awake();
+                };
+                /*private _getLastShape(body: any): any {
+                    var lastShape = body.shapes;
+                    while (lastShape.next) {
+                        lastShape = lastShape.next;
+                    }
+                    return lastShape;
+                }*/        OimoJSPlugin.prototype._getLastShape = function (body) {
+                    var lastShape = body.shapes;
+                    while (lastShape.next) {
+                        lastShape = lastShape.next;
+                    }
+                    return lastShape;
+                };
+                OimoJSPlugin.prototype.setLinearVelocity = function (impostor, velocity) {
+                    impostor.physicsBody.linearVelocity.init(velocity.x, velocity.y, velocity.z);
+                };
+                OimoJSPlugin.prototype.setAngularVelocity = function (impostor, velocity) {
+                    impostor.physicsBody.angularVelocity.init(velocity.x, velocity.y, velocity.z);
+                };
+                OimoJSPlugin.prototype.getLinearVelocity = function (impostor) {
+                    var v = impostor.physicsBody.linearVelocity;
+                    if (!v) {
+                        return null;
+                    }
+                    return new BABYLON.Vector3(v.x, v.y, v.z);
+                };
+                OimoJSPlugin.prototype.getAngularVelocity = function (impostor) {
+                    var v = impostor.physicsBody.angularVelocity;
+                    if (!v) {
+                        return null;
+                    }
+                    return new BABYLON.Vector3(v.x, v.y, v.z);
+                };
+                OimoJSPlugin.prototype.setBodyMass = function (impostor, mass) {
+                    var staticBody = mass === 0;
+                    //this will actually set the body's density and not its mass.
+                    //But this is how oimo treats the mass variable.
+                    impostor.physicsBody.shapes.density = staticBody ? 1 : mass;
+                    impostor.physicsBody.setupMass(staticBody ? 0x2 : 0x1);
+                };
+                OimoJSPlugin.prototype.getBodyMass = function (impostor) {
+                    return impostor.physicsBody.shapes.density;
+                };
+                OimoJSPlugin.prototype.getBodyFriction = function (impostor) {
+                    return impostor.physicsBody.shapes.friction;
+                };
+                OimoJSPlugin.prototype.setBodyFriction = function (impostor, friction) {
+                    impostor.physicsBody.shapes.friction = friction;
+                };
+                OimoJSPlugin.prototype.getBodyRestitution = function (impostor) {
+                    return impostor.physicsBody.shapes.restitution;
+                };
+                OimoJSPlugin.prototype.setBodyRestitution = function (impostor, restitution) {
+                    impostor.physicsBody.shapes.restitution = restitution;
+                };
+                // Wingnut adds collidesWith and belongsTo...
+                OimoJSPlugin.prototype.getBodyCollidesWith = function (impostor) {
+                    return impostor.physicsBody.shapes.collidesWith;
+                };
+                OimoJSPlugin.prototype.setBodyCollidesWith = function (impostor, collidesWith) {
+                    impostor.physicsBody.shapes.collidesWith = collidesWith;
+                };
+                OimoJSPlugin.prototype.getBodyBelongsTo = function (impostor) {
+                    return impostor.physicsBody.shapes.belongsTo;
+                };
+                OimoJSPlugin.prototype.setBodyBelongsTo = function (impostor, belongsTo) {
+                    impostor.physicsBody.shapes.belongsTo = belongsTo;
+                };
+        
+        
+        
+        
+                OimoJSPlugin.prototype.sleepBody = function (impostor) {
+                    impostor.physicsBody.sleep();
+                };
+                OimoJSPlugin.prototype.wakeUpBody = function (impostor) {
+                    impostor.physicsBody.awake();
+                };
+                OimoJSPlugin.prototype.updateDistanceJoint = function (joint, maxDistance, minDistance) {
+                    joint.physicsJoint.limitMotor.upperLimit = maxDistance;
+                    if (minDistance !== void 0) {
+                        joint.physicsJoint.limitMotor.lowerLimit = minDistance;
+                    }
+                };
+                OimoJSPlugin.prototype.setMotor = function (joint, speed, maxForce, motorIndex) {
+                    //TODO separate rotational and transational motors.
+                    var motor = motorIndex ? joint.physicsJoint.rotationalLimitMotor2 : joint.physicsJoint.rotationalLimitMotor1 || joint.physicsJoint.rotationalLimitMotor || joint.physicsJoint.limitMotor;
+                    if (motor) {
+                        motor.setMotor(speed, maxForce);
+                    }
+                };
+                OimoJSPlugin.prototype.setLimit = function (joint, upperLimit, lowerLimit, motorIndex) {
+                    //TODO separate rotational and transational motors.
+                    var motor = motorIndex ? joint.physicsJoint.rotationalLimitMotor2 : joint.physicsJoint.rotationalLimitMotor1 || joint.physicsJoint.rotationalLimitMotor || joint.physicsJoint.limitMotor;
+                    if (motor) {
+                        motor.setLimit(upperLimit, lowerLimit === void 0 ? -upperLimit : lowerLimit);
+                    }
+                };
+                OimoJSPlugin.prototype.syncMeshWithImpostor = function (mesh, impostor) {
+                    var body = impostor.physicsBody;
+                    mesh.position.x = body.position.x;
+                    mesh.position.y = body.position.y;
+                    mesh.position.z = body.position.z;
+                    if (mesh.rotationQuaternion) {
+                        mesh.rotationQuaternion.x = body.orientation.x;
+                        mesh.rotationQuaternion.y = body.orientation.y;
+                        mesh.rotationQuaternion.z = body.orientation.z;
+                        mesh.rotationQuaternion.w = body.orientation.s;
+                    }
+                };
+                OimoJSPlugin.prototype.getRadius = function (impostor) {
+                    return impostor.physicsBody.shapes.radius;
+                };
+                OimoJSPlugin.prototype.getBoxSizeToRef = function (impostor, result) {
+                    var shape = impostor.physicsBody.shapes;
+                    result.x = shape.halfWidth * 2;
+                    result.y = shape.halfHeight * 2;
+                    result.z = shape.halfDepth * 2;
+                };
+                OimoJSPlugin.prototype.dispose = function () {
+                    this.world.clear();
+                };
+                return OimoJSPlugin;
+            }());
+            BABYLON.OimoJSPlugin = OimoJSPlugin;
+        
+        
+        var createScene = function() {
+        
+            var scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color3(0, 0, 0);
+        
+            var camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 1.5, 1.4, 20, 
+                new BABYLON.Vector3(0, 15, 0), scene);
+            camera.attachControl(canvas);
+        
+            var light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+            light.groundColor = new BABYLON.Color3(.5, .5, .5);
+        
+            // Material
+            var gmat = new BABYLON.StandardMaterial("gmat", scene);
+            gmat.diffuseColor = new BABYLON.Color3(.2, 0, 0);
+            gmat.specularColor = new BABYLON.Color3(0, 0, 0);
+        
+            var mat1 = new BABYLON.StandardMaterial("mat1", scene);
+            mat1.diffuseColor = new BABYLON.Color3(0, .6, 0);
+            mat1.specularColor = new BABYLON.Color3(0, 0, 0);
+        
+            var mat2 = new BABYLON.StandardMaterial("mat2", scene);
+            mat2.diffuseColor = new BABYLON.Color3(1, 0, 0);
+            mat2.specularColor = new BABYLON.Color3(0, 0, 0);
+            // mat2.wireframe = true;
+        
+            var mat3 = new BABYLON.StandardMaterial("mat3", scene);
+            mat3.diffuseColor = new BABYLON.Color3(.1, 0, 2);
+            mat3.specularColor = new BABYLON.Color3(0, 0, 0);
+            // mat3.wireframe = true;
+        
+            var mat4 = new BABYLON.StandardMaterial("mat4", scene);
+            mat4.diffuseColor = new BABYLON.Color3(2, 0, 2);
+            mat4.specularColor = new BABYLON.Color3(0, 0, 0);
+            // mat4.wireframe = true;
+        
+            var mat5 = new BABYLON.StandardMaterial("mat5", scene);
+            mat5.diffuseColor = new BABYLON.Color3(0, .5, 1);
+            mat5.specularColor = new BABYLON.Color3(0, 0, 0);
+            // mat5.wireframe = true;
+        
+            var matq1 = new BABYLON.StandardMaterial("matq1", scene);
+            matq1.diffuseColor = new BABYLON.Color3(.6, 1, 0);
+            matq1.specularColor = new BABYLON.Color3(0, 0, 0);
+            // matq1.wireframe = true;
+        
+            var matq2 = new BABYLON.StandardMaterial("matq2", scene);
+            matq2.diffuseColor = new BABYLON.Color3(0, 1, .6);
+            matq2.specularColor = new BABYLON.Color3(0, 0, 0);
+            // matq2.wireframe = true;
+        
+            var matq3 = new BABYLON.StandardMaterial("matq3", scene);
+            matq3.diffuseColor = new BABYLON.Color3(.6, 0, 1);
+            matq3.specularColor = new BABYLON.Color3(0, 0, 0);
+            // matq3.wireframe = true;
+        
+            var matq4 = new BABYLON.StandardMaterial("matq4", scene);
+            matq4.diffuseColor = new BABYLON.Color3(0, .6, 1);
+            matq4.specularColor = new BABYLON.Color3(0, 0, 0);
+            // matq4.wireframe = true;
+        
+            var matq5 = new BABYLON.StandardMaterial("matq5", scene);
+            matq5.diffuseColor = new BABYLON.Color3(1, 0, .6);
+            matq5.specularColor = new BABYLON.Color3(0, 0, 0);
+            // matq5.wireframe = true;
+        
+            var matq6 = new BABYLON.StandardMaterial("matq6", scene);
+            matq6.diffuseColor = new BABYLON.Color3(1, .6, 0);
+            matq6.specularColor = new BABYLON.Color3(0, 0, 0);
+            // matq6.wireframe = true;
+        
+            // Physics
+            scene.enablePhysics(new BABYLON.Vector3(0, -9, 0), new BABYLON.OimoJSPlugin());
+        
+        
+            // the playas
+            var part1 = BABYLON.MeshBuilder.CreateBox("part1", {
+                height: 10,
+                width: 2,
+                depth: 2
+            }, scene);
+            part1.material = mat1;
+            part1.position = new BABYLON.Vector3(0, 25, 0);
+            part1.showBoundingBox = 0;
+            // part1.rotation = new BABYLON.Vector3(0, 0, 0);
+            part1.actionManager = new BABYLON.ActionManager(scene);
+            part1.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, function(bjsevt)
+            {
+                // console.log(part2.physicsImpostor);
+                // part2.setAbsolutePosition(new BABYLON.Vector3(0, 15, 0));
+                // part2.physicsImpostor.deltaPosition(new BABYLON.Vector3(0, 15, 0));
+                // part2.rotationQuaternion = new BABYLON.Quaternion(0,0,0,1);
+                // part2.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+                // part2.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+                // part2.physicsImpostor.physicsBody.localInertia = [0,0,0,0,0,0,0,0,0];
+                // part2.physicsImpostor.physicsBody.angularVelocity = new OIMO.Vec3(0,0,0);
+                // part2.physicsImpostor.physicsBody.linearVelocity = new OIMO.Vec3(0,0,0);
+        
+                // console.log(part2.physicsImpostor);
+        
+                // part2.physicsImpostor._physicsBody.angularVelocity = new OIMO.Vec3(0,0,0);
+                // part2.physicsImpostor._physicsBody.linearVelocity = new OIMO.Vec3(0,0,0);
+                // part2.physicsImpostor.physicsBody.position = new OIMO.Vec3(0,0,0);
+                // part2.physicsImpostor.physicsBody.rotation = new OIMO.Vec3(0,0,0);
+            }));
+        
+        
+        
+            var part2 = BABYLON.MeshBuilder.CreateBox("part2", {
+                height: 8,
+                width: 2,
+                depth: 2
+            }, scene);
+            part2.material = mat2;
+            part2.position = new BABYLON.Vector3(0, 16, 0);
+            // part2.rotation = new BABYLON.Vector3(0, 0, 0);
+        
+            var part3 = BABYLON.MeshBuilder.CreateBox("part3", {
+                height: 6,
+                width: 2,
+                depth: 2
+            }, scene);
+            part3.material = mat3;
+            part3.position = new BABYLON.Vector3(0, 8, 0);
+            // part3.rotation = new BABYLON.Vector3(0, 0, 0);
+        
+            // part4.rotationQuaternion = BABYLON.Quaternion.RotationYawPitchRoll(0, Math.PI / 2, 0); // yay!  Do it before setPhysics!
+        
+            var part4 = BABYLON.MeshBuilder.CreateBox("part4", {
+                height: 4,
+                width: 2,
+                depth: 2,
+            }, scene);
+            part4.material = mat4;
+            part4.position = new BABYLON.Vector3(0, 3, 0);
+            // part4.rotation = new BABYLON.Vector3(0, 0, 0);
+        
+        // ------------------------------------------------------------------------
+            part1.physicsImpostor = new BABYLON.PhysicsImpostor(part1, BABYLON.PhysicsImpostor.BoxImpostor,
+            {
+                mass: 0,
+                friction: .01,
+                restitution: 0,
+        
+                // new and fresh oimo non-natives...
+                // collidesWith: 0x00, // 0b00000000 binary allowed?
+                belongsTo: 0xFE  // 0b00000000 binary allowed ?
+            });
+            part1.physicsImpostor.physicsBody.aaaa = "part1 pb"
+        
+            part2.physicsImpostor = new BABYLON.PhysicsImpostor(part2, BABYLON.PhysicsImpostor.BoxImpostor,
+            {
+                mass: .1,
+                friction: .01,
+                restitution: 0,
+        
+                // new and fresh oimo non-natives...
+                // collidesWith: 0x00, // 0b00000000 binary allowed?
+                belongsTo: 0xe1  // 0b00000000 binary allowed ?
+            });
+        
+            part2.physicsImpostor.physicsBody.aaaa = "part2 pb"
+        
+            part3.physicsImpostor = new BABYLON.PhysicsImpostor(part3, BABYLON.PhysicsImpostor.BoxImpostor,
+            {
+                mass: .1,
+                friction: .01,
+                restitution: .1
+            });
+        
+            part4.physicsImpostor = new BABYLON.PhysicsImpostor(part4, BABYLON.PhysicsImpostor.BoxImpostor,
+            {
+                mass: .1,
+                friction: .01,
+                restitution: .1
+            });
+        
+        // ------------------------------------------------------------------------
+        // https://github.com/lo-th/Oimo.js/blob/gh-pages/src/constraint/joint/JointConfig.js
+        
+        		// var jc = new OIMO.JointConfig();
+        		// jc.allowCollision = false;
+        		// // jc.localAxis1.init(axe1[0], axe1[1], axe1[2]);
+        		// // jc.localAxis2.init(axe2[0], axe2[1], axe2[2]);
+                // jc.localAxis1 = new OIMO.Vec3(0, 1, 0); // not sure if needed
+                // jc.localAxis2 = new OIMO.Vec3(0, 1, 0); // not sure if needed
+                // jc.body1 = part1;
+        		// jc.body2 = part2;
+        		// // jc.localAnchorPoint1.init(0, -5, 0);
+        		// // jc.localAnchorPoint2.init(0, 4, 0);
+        
+        		// jc.localAnchorPoint1 = new OIMO.Vec3(0, -5, 0);
+        		// jc.localAnchorPoint2 = new OIMO.Vec3(0, 4, 0);
+        
+            // console.log(new OIMO.Joint(jc));    
+        
+        /* 
+        // https://github.com/lo-th/Oimo.js/blob/gh-pages/src/constraint/joint/Joint.js
+            // var joint1 = new OIMO.Joint(jc);
+            // var joint1 = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.BallAndSocketJoint, {
+            var joint1 = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.WheelJoint, {
+            // var joint1 = new BABYLON.MotorEnabledJoint(BABYLON.PhysicsJoint.HingeJoint, {
+                mainPivot: new BABYLON.Vector3(0, -5, 0),
+                connectedPivot: new BABYLON.Vector3(0, 4, 0),
+                mainAxis: BABYLON.Axis.Z,
+                connectedAxis: -BABYLON.Axis.Z,
+                limit: null,
+        		spring: null,
+        		motor: null,
+                nativeParams: {
+                    // limit: [-5, 5],
+        			// spring: [5, 2],
+        			// min: 5,
+        			// max: 30, 
+                    // collision: false
+                }
+            });
+        
+            console.log("joint1: ", joint1);
+            scene.executeWhenReady(function(){console.log("joint1.physicsJoint: ", joint1.physicsJoint);});
+            // console.log("joint1.physicsJoint: ", joint1.physicsJoint);
+            // console.log("r3c: ", r3c);
+            // console.log("joint1.physicsJoint: ", joint1.physicsJoint);
+            // var r3 = joint1.physicsJoint.r3;
+            // console.log("r3: ", r3);
+            part1.physicsImpostor.addJoint(part2.physicsImpostor, joint1);
+        */
+        
+        // here begins the great h3j - hinge3joint. It is a 3-count stack of standard hinges...
+        // connected to one another by 2 ghost-mesh/impostors (boxes).
+            var gSize = 0.25;
+        
+            var ghost1 = BABYLON.MeshBuilder.CreateBox("ghost1", {
+                height: gSize,
+                width: gSize,
+                depth: gSize
+            }, scene);
+            ghost1.material = mat4;
+            ghost1.showBoundingBox = true;
+            ghost1.position = new BABYLON.Vector3(0, 20, 0);
+            // ghost1.rotation = new BABYLON.Vector3(0, 0, 0);
+            ghost1.physicsImpostor = new BABYLON.PhysicsImpostor(ghost1, BABYLON.PhysicsImpostor.BoxImpostor,
+            {
+                mass: 0.1,
+                friction: 0,
+                restitution: 0
+            });
+            ghost1.physicsImpostor.physicsBody.aaaa = "ghost1 pb"
+        
+            var ghost2 = BABYLON.MeshBuilder.CreateBox("ghost2", {
+                height: gSize,
+                width: gSize,
+                depth: gSize
+            }, scene);
+            ghost2.material = mat5;
+            ghost2.showBoundingBox = true;
+            ghost2.position = new BABYLON.Vector3(0, 20, 0);
+            // ghost2.rotation = new BABYLON.Vector3(0, 0, 0);
+            ghost2.physicsImpostor = new BABYLON.PhysicsImpostor(ghost2, BABYLON.PhysicsImpostor.BoxImpostor,
+            {
+                mass: 0.1,
+                friction: 0,
+                restitution: 0,
+                
+                belongsTo: 0x02  // 0b00000000 binary allowed ?
+            });
+            ghost2.physicsImpostor.physicsBody.aaaa = "ghost2 pb"
+        
+            var freq = null;
+            var damp = null;
+        
+            // var joint1a = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.HingeJoint, {
+            var joint1a = new BABYLON.MotorEnabledJoint(BABYLON.PhysicsJoint.HingeJoint, {
+                mainPivot: new BABYLON.Vector3(0, -4.0, 0),
+                connectedPivot: new BABYLON.Vector3(0,0,0),
+                mainAxis: BABYLON.Axis.X,
+                connectedAxis: BABYLON.Axis.X,
+                nativeParams: {
+                    // limit: [0, 0],
+        			// spring: [freq, damp],
+        			min: 0,
+        			max: 0, 
+                    collision: false
+                }
+            });
+        
+            var joint1b = new BABYLON.MotorEnabledJoint(BABYLON.PhysicsJoint.HingeJoint, {
+                mainPivot: new BABYLON.Vector3(0,0,0),
+                connectedPivot: new BABYLON.Vector3(0,0,0),
+                mainAxis: BABYLON.Axis.Y,
+                connectedAxis: BABYLON.Axis.Y,
+                nativeParams: {
+                    // limit: [0, 0],
+        			// spring: [freq, damp],
+        			min: 0,
+        			max: 0, 
+                    collision: false
+                }
+            });
+        
+            var joint1c = new BABYLON.MotorEnabledJoint(BABYLON.PhysicsJoint.HingeJoint, {
+                mainPivot: new BABYLON.Vector3(0,0,0),
+                connectedPivot: new BABYLON.Vector3(0, 4.0, 0),
+                mainAxis: BABYLON.Axis.Z,
+                connectedAxis: BABYLON.Axis.Z,
+                nativeParams: {
+                    // limit: [0, 0],
+        			// spring: [freq, damp],
+        			min: 0,
+        			max: 0, 
+                    collision: false
+                }
+            });
+        
+            part1.physicsImpostor.addJoint(ghost1.physicsImpostor, joint1a);
+            ghost1.physicsImpostor.addJoint(ghost2.physicsImpostor, joint1b);
+            ghost2.physicsImpostor.addJoint(part2.physicsImpostor, joint1c);
+        
+        
+            joint1a._physicsJoint.aaaa = "j1a";
+            joint1b._physicsJoint.aaaa = "j1b";
+            joint1c._physicsJoint.aaaa = "j1c";
+        
+        
+        
+            // part1.physicsImpostor.physicsBody.addedToIsland = false;
+            // part1.physicsImpostor.physicsBody.isDynamic = true;
+            // part1.physicsImpostor.physicsBody.isStatic = false;
+        
+            // scene.beforeRender = function() {
+            //     if(part1.physicsImpostor.physicsBody.contactLink)
+            //         part1.physicsImpostor.physicsBody.contactLink = null;
+            // }
+        
+            // console.log(part1.physicsImpostor.physicsBody);
+            scene.executeWhenReady(function(){
+                var pworld = scene.getPhysicsEngine().getPhysicsPlugin().world;
+                // pworld.removeContact (part1.physicsImpostor.physicsBody.contactLink.body);
+        
+                // setTimeout(function() {
+                //     part1.physicsImpostor.physicsBody.numContacts = 0;
+                //     console.log(part1.physicsImpostor.physicsBody);
+                //     try{
+                //         pworld.removeContact (part1.physicsImpostor.physicsBody.contactLink.contact);
+                //     } catch(e) {console.log(e)}
+                //     try{
+                //         pworld.removeContact (part1.physicsImpostor.physicsBody.contactLink.contact);
+                //     } catch(e) {console.log(e)}
+                //     // console.log(remove);
+                // }, 3000);
+                
+        
+                // console.log(part1.physicsImpostor.physicsBody);
+                // part1.physicsImpostor.physicsBody.contactLink = null;
+                // console.log(part1.physicsImpostor.physicsBody.contactLink);
+            })
+            // console.log(part1.physicsImpostor.physicsBody.contactLink);
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+            var joint2 = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.BallAndSocketJoint, {
+            // var joint2 = new BABYLON.MotorEnabledJoint(BABYLON.PhysicsJoint.HingeJoint, {
+                mainPivot: new BABYLON.Vector3(0,-4,0),
+                connectedPivot: new BABYLON.Vector3(0,3,0),
+                mainAxis: BABYLON.Axis.Z,
+                connectedAxis: BABYLON.Axis.Z,
+                nativeParams: {
+                    // limit: [-30, 30],
+        			// spring: [5, 2],
+        			// min: 5,
+        			// max: 30, 
+                    collision: false
+                }
+            });
+        
+            // part2.physicsImpostor.addJoint(part3.physicsImpostor, joint2);
+        
+            var joint3 = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.BallAndSocketJoint, {
+            // var joint3 = new BABYLON.MotorEnabledJoint(BABYLON.PhysicsJoint.HingeJoint, {
+                mainPivot: new BABYLON.Vector3(0,-3,0),
+                connectedPivot: new BABYLON.Vector3(0,2,0),
+                mainAxis: BABYLON.Axis.Z,
+                connectedAxis: BABYLON.Axis.Z,
+                nativeParams: {
+                    // limit: [0, 0],
+        			// spring: [5, 2],
+        			// min: 5,
+        			// max: 30, 
+                    collision: false
+                }
+            });
+        
+            // part3.physicsImpostor.addJoint(part4.physicsImpostor, joint3);
+        
+            // joint1.setMotor(0, .5)
+            // joint2.setMotor(0, .5)
+            // joint3.setMotor(0, .5)
+        
+            var ground = BABYLON.Mesh.CreateGround("Ground", 500, 500, 1, scene);
+            ground.position.y = -20.0;
+            ground.material = gmat;
+            ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.PlaneImpostor,
+            {
+                mass: 0,
+                friction: 0.5,
+                restitution: 0.7
+            });
+        
+        
+            for(which in scene.meshes){
+                scene.meshes[which].renderingGroupId = 1;
+            }
+        
+        
+            var hl = new BABYLON.HighlightLayer('hl', scene);
+        
+            var ht = 1;
+            var td = 0.001;
+            var bd = 1;
+            var sides = 4;
+        
+            var pulsarMaster = BABYLON.Mesh.CreateCylinder('q-cone', ht, td, bd, sides, 0, scene);
+        
+            pulsarMaster.rotation.y = Math.PI/4;
+            pulsarMaster.bakeCurrentTransformIntoVertices();
+        
+            pulsarMaster.setPivotMatrix(BABYLON.Matrix.Translation(0, -ht/2, 0));
+        
+            pulsarMaster.material = new BABYLON.StandardMaterial('cmat', scene);
+            pulsarMaster.material.diffuseColor = new BABYLON.Color3(.1, .4, .3);
+            pulsarMaster.position = new BABYLON.Vector3(-10, 30, 0);
+            pulsarMaster.renderingGroupId = 2;
+        
+            var pulsars = [];
+        
+            var halfcirc = BABYLON.MeshBuilder.CreateCylinder("hc", {
+                height: .1, 
+                diameter: 1, 
+                tessellation: 16,
+                subdivisions: 1,
+                arc: .4999,
+                sideOrientation: 0,
+                enclose: true
+            }, scene);
+            halfcirc.renderingGroupId = 1;
+            // halfcirc.showBoundingBox = true;
+            halfcirc.position = new BABYLON.Vector3(0,30,0);
+            halfcirc.material = matq1;
+            halfcirc.renderingGroupId = 2;
+        
+        
+            var createQuasar = function(name, which, power, positionalOffset, size, color1, color2, parentToMesh) {
+                // console.log("createQuasar");    
+                var quasar = new BABYLON.AbstractMesh("qM", scene);
+                quasar.scaling = new BABYLON.Vector3(size, size, size);
+                if (typeof(which) == "string") {
+                    // console.log("string");
+                    quasar.mesh = scene.getMeshByName(which);
+                }
+                else {
+                    quasar.mesh = which;
+                }
+                // console.log("target name", quasar.mesh.name);
+        
+                quasar.impulse = function(bevt) {
+                    var src = bevt.source;
+                    // power /= 2;
+                    // console.log('quasar impulse: ', src.name);
+        
+                    if (src.name == 'hc1') {
+                        src.parent.mesh.physicsImpostor.setAngularVelocity(
+                            src.parent.mesh.physicsImpostor.getAngularVelocity().add(
+                                new BABYLON.Vector3(0, power, 0)
+                            )
+                        );
+                    }
+                    else if (src.name == 'hc2') {
+                        src.parent.mesh.physicsImpostor.setAngularVelocity(
+                            src.parent.mesh.physicsImpostor.getAngularVelocity().add(
+                                new BABYLON.Vector3(0, -power, 0)
+                            )
+                        );
+                    }
+                    else if (src.name == 'hc3') {
+                        src.parent.mesh.physicsImpostor.setAngularVelocity(
+                            src.parent.mesh.physicsImpostor.getAngularVelocity().add(
+                                new BABYLON.Vector3(0, 0, power)
+                            )
+                        );
+                    }
+                    else if (src.name == 'hc4') {
+                        src.parent.mesh.physicsImpostor.setAngularVelocity(
+                            src.parent.mesh.physicsImpostor.getAngularVelocity().add(
+                                new BABYLON.Vector3(0, 0, -power)
+                            )
+                        );
+                    }
+                    else if (src.name == 'hc5') {
+                        src.parent.mesh.physicsImpostor.setAngularVelocity(
+                            src.parent.mesh.physicsImpostor.getAngularVelocity().add(
+                                new BABYLON.Vector3(power, 0, 0)
+                            )
+                        );
+                    }
+                    else if (src.name == 'hc6') {
+                        src.parent.mesh.physicsImpostor.setAngularVelocity(
+                            src.parent.mesh.physicsImpostor.getAngularVelocity().add(
+                                new BABYLON.Vector3(-power, 0, 0)
+                            )
+                        );
+                    }
+                }
+        
+                var hc1 = halfcirc.clone('hc1');
+                hc1.renderingGroupId = 2;
+                hc1.material = matq1;
+                hc1.position = new BABYLON.Vector3(0, 0, 0);
+                hc1.rotation = new BABYLON.Vector3(0, Math.PI/2, 0);
+                hc1.actionManager = new BABYLON.ActionManager(scene);
+                hc1.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, quasar.impulse));
+                hl.addMesh(hc1, (color2 ? color2 : new BABYLON.Color3(.8, 0, .2)));
+        
+                var hc2 = halfcirc.clone('hc2');
+                hc2.renderingGroupId = 2;
+                hc2.material = matq2;
+                hc2.position = new BABYLON.Vector3(0, 0, 0);
+                hc2.rotation = new BABYLON.Vector3(0, -Math.PI/2, 0);
+                hc2.actionManager = new BABYLON.ActionManager(scene);
+                hc2.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, quasar.impulse));
+                hl.addMesh(hc2, (color2 ? color2 : new BABYLON.Color3(.8, 0, .2)));
+        
+                var hc3 = halfcirc.clone('hc3');
+                hc3.renderingGroupId = 2;
+                hc3.material = matq3;
+                hc3.position = new BABYLON.Vector3(0, 0, 0);
+                hc3.rotation = new BABYLON.Vector3(Math.PI, -Math.PI/2, -Math.PI/2);
+                hc3.actionManager = new BABYLON.ActionManager(scene);
+                hc3.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, quasar.impulse));
+                hl.addMesh(hc3, (color2 ? color2 : new BABYLON.Color3(.8, 0, .2)));
+        
+                var hc4 = halfcirc.clone('hc4');
+                hc4.renderingGroupId = 2;
+                hc4.material = matq4;
+                hc4.position = new BABYLON.Vector3(0, 0, 0);
+                hc4.rotation = new BABYLON.Vector3(0, -Math.PI/2, Math.PI/2);
+                hc4.actionManager = new BABYLON.ActionManager(scene);
+                hc4.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, quasar.impulse));
+                hl.addMesh(hc4, (color2 ? color2 : new BABYLON.Color3(.8, 0, .2)));
+        
+                var hc5 = halfcirc.clone('hc5');
+                hc5.renderingGroupId = 2;
+                hc5.material = matq5;
+                hc5.position = new BABYLON.Vector3(0, 0, 0);
+                hc5.rotation = new BABYLON.Vector3(Math.PI/2, -Math.PI, -Math.PI/2);
+                hc5.actionManager = new BABYLON.ActionManager(scene);
+                hc5.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, quasar.impulse));
+                hl.addMesh(hc5, (color2 ? color2 : new BABYLON.Color3(.8, 0, .2)));
+        
+                var hc6 = halfcirc.clone('hc6');
+                hc6.renderingGroupId = 2;
+                hc6.material = matq6;
+                hc6.position = new BABYLON.Vector3(0, 0, 0);
+                hc6.rotation = new BABYLON.Vector3(-Math.PI/2, Math.PI, Math.PI/2);
+                hc6.actionManager = new BABYLON.ActionManager(scene);
+                hc6.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, quasar.impulse));
+                hl.addMesh(hc6, (color2 ? color2 : new BABYLON.Color3(.8, 0, .2)));
+        
+                hc1.parent=hc2.parent=hc3.parent=hc4.parent=hc5.parent=hc6.parent = quasar;
+        
+                if (parentToMesh) {
+                    quasar.parent = quasar.mesh;
+                }
+                else {
+                    quasar.position = quasar.mesh.getAbsolutePosition().add(positionalOffset);
+                    // quasar.position = quasar.mesh.getAbsolutePosition();
+                }
+                return quasar;
+        
+            }
+        
+        
+            var echoPulsar = function(name, which, color1, color2, side) {
+                // console.log("echoPulsar");
+        
+                if (typeof(which) == "string") {
+                    // console.log("string");
+                    var imp = scene.getMeshByName(which);
+                    if (!imp) {
+                        console.error("Pulsar named " + which + " not found");
+                        return;
+                    }
+                    else if (imp.type != "pulsar") {
+                        console.error("Mesh found, but it is NOT of type == pulsar");
+                        return;
+                    }
+                }
+                else {
+                    var imp = which;
+                }
+                // console.log(imp)
+        
+                if (side && side == "left") {
+                    // console.log("left");
+        
+                    var newImp = createPulsar(
+                        imp.name + "_" + String(engine.getDeltaTime()), 
+                        imp.mesh, 
+                        BABYLON.Vector3.Cross(imp.rotation.multiply(BABYLON.Vector3.Up()), imp.direction.negate()),
+                        imp.magnitude, 
+                        new BABYLON.Vector3(imp.contact.z*-1, imp.contact.y, imp.contact.x*-1), 
+                        imp.size, 
+                        color1 ? color1 : imp.color1, 
+                        color2 ? color2 : imp.color2
+                    );
+                }
+                else if (side && side == "right") {
+                    // console.log("right");
+                    var newImp = createPulsar(
+                        imp.name + "_" + String(engine.getDeltaTime()), 
+                        imp.mesh, 
+                        BABYLON.Vector3.Cross(imp.rotation.multiply(BABYLON.Vector3.Up()), imp.direction),
+                        imp.magnitude, 
+                        new BABYLON.Vector3(-imp.contact.z*-1, imp.contact.y, -imp.contact.x*-1), 
+                        imp.size, 
+                        color1 ? color1 : imp.color1, 
+                        color2 ? color2 : imp.color2
+                    );
+                }
+                else {
+                    // console.log("opposite");
+                    var newImp = createPulsar(
+                        imp.name + "_" + String(engine.getDeltaTime()), 
+                        imp.mesh, 
+                        imp.direction.negate(),
+                        imp.magnitude, 
+                        new BABYLON.Vector3(imp.contact.x*-1, imp.contact.y, imp.contact.z*-1), 
+                        imp.size, 
+                        color1 ? color1 : imp.color1, 
+                        color2 ? color2 : imp.color2
+                    );
+                }
+                return newImp;
+            }
+        
+            var createPulsar = function(name, mesh, direction, magnitude, contact, size, color1, color2) {
+                // console.log("createPulsar");    
+                var arrow = pulsarMaster.clone();
+                arrow.name = name;
+                arrow.type = "pulsar";
+                arrow.impostor = mesh.physicsImpostor;
+                arrow.mesh = mesh;
+                arrow.direction = direction;
+                arrow.magnitude = magnitude;
+                arrow.contact = contact;
+                arrow.size = size;
+                arrow.position = arrow.contact;
+                arrow.force = direction.multiply(magnitude);
+                arrow.parent = mesh;
+        
+                hl.addMesh(arrow, (color2 ? color2 : BABYLON.Color3.Green()));
+        
+                arrow.scaling = new BABYLON.Vector3(size, size, size);
+                arrow.color1 = color1;
+                arrow.color2 = color2;
+        
+                arrow.lookAt(arrow.position.add(arrow.direction), 0, -Math.PI*.5)
+                arrow.material.diffuseColor = color1;
+        
+                arrow.impulse = function(bevt) {
+                    var src = bevt.source;
+                    if (!src.parent.physicsImpostor) return;
+                    if (src.particleSystem) {
+                        src.particleSystem.pulse(src);
+                    }
+                    // console.log("pulse! force: ", src.force, "contact: ", src.parent.getAbsolutePosition().add(src.contact));
+                    src.parent.applyImpulse(src.force, src.parent.getAbsolutePosition().add(src.contact));
+                }
+        
+                arrow.actionManager = new BABYLON.ActionManager(scene);
+                arrow.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, arrow.impulse));
+        
+                pulsars.push(arrow);
+        
+                return arrow;
+            }
+        
+            var g = 1.0;
+            var gf = new BABYLON.Vector3(g,g,g);  // global force
+            var size = .7;
+        
+            var p1 = createPulsar(
+                "p1",
+                part2,
+                new BABYLON.Vector3(-1, 0, 0),  // dir
+                // new BABYLON.Vector3(1, 1, 1),  // mag
+                gf,  // mag
+                new BABYLON.Vector3(1, -3, 0), // contact
+                size, // size
+                new BABYLON.Color3(.5,0,.5), // main color
+                new BABYLON.Color3(1,1,0) // highlightColor
+            );
+        
+            var p2 = createPulsar(
+                "p2",
+                part3,
+                new BABYLON.Vector3(-1, 0, 0),  // dir
+                // new BABYLON.Vector3(1, 1, 1),  // mag
+                gf,  // mag
+                new BABYLON.Vector3(1, -2, 0), // contact
+                size, // size
+                new BABYLON.Color3(.5,0,.5), // main color
+                new BABYLON.Color3(1,0,0) // highlightColor
+            );
+        
+            var p3 = createPulsar(
+                "p3",
+                part4,
+                new BABYLON.Vector3(-1, 0, 0),  // dir
+                // new BABYLON.Vector3(1, 1, 1),  // mag
+                gf,  // mag
+                new BABYLON.Vector3(1, -1, 0), // contact
+                size, // size
+                new BABYLON.Color3(.5,0,.5), // main color
+                new BABYLON.Color3(0,2,0) // highlightColor
+            );
+        
+            // p1.rotation.y = .707;
+            var p1b = echoPulsar("p1b", "p1", null, null, "left");
+            var p1c = echoPulsar("p1c", "p1", null, null, "right");
+            var p1d = echoPulsar("p1d", "p1", null, null);
+            var p2b = echoPulsar("p2b", "p2", null, null, "left");
+            var p2c = echoPulsar("p2c", "p2", null, null, "right");
+            var p2d = echoPulsar("p2d", "p2", null, null);
+            var p3b = echoPulsar("p3b", "p3", null, null, "left");
+            var p3c = echoPulsar("p3c", "p3", null, null, "right");
+            var p3d = echoPulsar("p3d", "p3", null, null);
+        
+        
+            var q1a = createQuasar("q1a", ghost1, 55, new BABYLON.Vector3(5,0.4,0), 1.0, null, null, false);
+            q1a.rotation = new BABYLON.Vector3(0, .7, 0);
+            var q1b = createQuasar("q1b", ghost2, 1, new BABYLON.Vector3(5,-0.7,0), 1.0, null, null, false);
+            q1b.rotation = new BABYLON.Vector3(0, .7, 0);
+            var q1c = createQuasar("q1c", "part2", 5, new BABYLON.Vector3(5,1,0), 1.5, null, null, false);
+        
+            // var q2 = createQuasar("q2", "part3", 6, new BABYLON.Vector3(5,0,0), 3, null, null, false);
+            // var q3 = createQuasar("q3", "part4", 6, new BABYLON.Vector3(5,0,0), 3, null, null, false);
+        
+            scene.getPhysicsEngine().getPhysicsPlugin().world.enableRandomizer = false;
+            scene.getPhysicsEngine().getPhysicsPlugin().world.timeStep = .05;
+        
+            // some forced movements.
+            // p1.impulse({source: p1});
+            // p1.impulse({source: p1});
+            // p1.impulse({source: p1});
+            // p1b.impulse({source: p1b});
+            // q1.impulse({source: scene.getMeshByName('hc1')});
+        
+        
+            // console.log();
+            // var lm1 = new OIMO.LimitMotor(new OIMO.Vec3(1,0,0));
+            // var lm2 = new OIMO.LimitMotor(new OIMO.Vec3(0,1,0));
+            // var lm3 = new OIMO.LimitMotor(new OIMO.Vec3(0,0,1));
+        
+            // var world = scene.getPhysicsEngine()._physicsPlugin.world;
+            // console.log(world);
+            // world.add(joint1.physicsBody);
+            // world.add(lm1);
+            // world.add(lm2);
+            // world.add(lm3);
+        
+            part3.setEnabled(false);
+            part4.setEnabled(false);
+        
+            // console.log(lm1, '\n', lm2, '\n', lm3);
+        
+        // https://github.com/lo-th/Oimo.js/blob/gh-pages/src/constraint/joint/base/Rotational3Constraint.js#L57
+            // var r3c = new OIMO.Rotational3Constraint(joint1.physicsJoint, lm1, lm2, lm3);
+            // r3c.name = "myR3c";
+            // var r3c = new OIMO.Rotational3Constraint(joint1, lm1, lm2, lm3);
+            // world.add(r3c);
+            // r3c.assign();
+            // console.log("r3c: ", r3c);
+            // console.log("joint1.physicsJoint: ", joint1.physicsJoint);
+            // var r3 = joint1.physicsJoint.r3;
+            // console.log("r3: ", r3);
+        
+        
+            // var uL = 3.1;
+            // var bL = 1.1;
+        
+            // r3.enableMotor1 = true;
+            // r3.enableMotor2 = true;
+            // r3.enableMotor3 = true;
+        
+            // r3.limitImpulse1 = 3.5;
+            // r3.limitImpulse2 = 3.5;
+            // r3.limitImpulse3 = 3.5;
+        
+            // r3.limitVelocity1 = 3.5;
+            // r3.limitVelocity2 = 3.5;
+            // r3.limitVelocity3 = 3.5;
+        
+            // r3.upperLimit1 = uL;
+            // r3.upperLimit2 = uL;
+            // r3.upperLimit3 = uL;
+        
+            // r3.lowerLimit1 = bL;
+            // r3.lowerLimit2 = bL;
+            // r3.lowerLimit3 = bL;
+        
+        
+            // r3.motorImpulse1 = 5.5;
+            // r3.motorImpulse2 = 5.5;
+            // r3.motorImpulse3 = 5.5;
+        
+            // r3.maxMotorImpulse1 = 5.5;
+            // r3.maxMotorImpulse2 = 5.5;
+            // r3.maxMotorImpulse3 = 5.5;
+        
+            // r3.maxMotorForce1 = 5.5;
+            // r3.maxMotorForce2 = 5.5;
+            // r3.maxMotorForce3 = 5.5;
+        
+            // r3.motorSpeed1 = 5.5;
+            // r3.motorSpeed2 = 5.5;
+            // r3.motorSpeed3 = 5.5;
+        
+        
+            // var ang = 0;
+            // var dR = 0;
+            // var fR = 0;
+        
+        /*
+            r3.limitMotor1.angle = ang;
+            r3.limitMotor1.axis = new OIMO.Vec3(1,0,0);
+            r3.limitMotor1.dampingRatio = dR;
+            r3.limitMotor1.frequency = fR;
+            r3.limitMotor1.lowerLimit = bL;
+            r3.limitMotor1.maxMotorForce = 5.5; 
+            r3.limitMotor1.motorSpeed = 5.5;
+            r3.limitMotor1.upperLimit = uL;
+        
+            r3.limitMotor2.angle = ang;
+            r3.limitMotor2.axis = new OIMO.Vec3(0,1,0);
+            r3.limitMotor2.dampingRatio = dR;
+            r3.limitMotor2.frequency = fR;
+            r3.limitMotor2.lowerLimit = bL;
+            r3.limitMotor2.maxMotorForce = 5.5; 
+            r3.limitMotor2.motorSpeed = 5.5;
+            r3.limitMotor2.upperLimit = uL;
+        
+            r3.limitMotor3.angle = ang;
+            r3.limitMotor3.axis = new OIMO.Vec3(0,0,1);
+            r3.limitMotor3.dampingRatio = dR;
+            r3.limitMotor3.frequency = fR;
+            r3.limitMotor3.lowerLimit = bL;
+            r3.limitMotor3.maxMotorForce = 5.5; 
+            r3.limitMotor3.motorSpeed = 5.5;
+            r3.limitMotor3.upperLimit = uL;
+        */
+        
+            // GUI
+            var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+            var base = {x: canvas.width/2, y: canvas.height/2};  // screen center
+            // var baseY = 500;
+            var indexX = 30;
+            var indexY = 30;
+            var spacingY = 50;
+            // var xScale;
+            var rects = [];
+        
+            // var cw = canvas.width;
+            // scene.beforeRender = function(){
+            //     if (canvas.width !== cw) {
+            //         // console.log(canvas.width);
+            //         var xScale = canvas.width/base.x;
+            //         console.log(xScale);
+            //     }
+            //     cw = canvas.width;
+            // }
+        
+            // var baseRect = new BABYLON.GUI.Ellipse();
+            // baseRect.width = "20px";
+            // baseRect.height = "20px";
+            // baseRect.color = "white";
+            // baseRect.thickness = 3;
+            // baseRect.background = "black";
+            // advancedTexture.addControl(baseRect);
+            // baseRect.x = base.x;
+            // baseRect.y = base.y;
+            // setInterval(function(){
+            //     baseRect.color = (baseRect.color == "white" ? "blue" : "white");
+            // },500)
+        
+            var guiTarget1 = BABYLON.Mesh.CreateBox("gt1", .4, scene);
+            guiTarget1.parent = part1;
+            guiTarget1.position.y = -4;
+            part1.visibility = .9;
+            guiTarget1.renderingGroupId = 1;
+        
+            var rect1 = new BABYLON.GUI.Rectangle();
+            rect1.width = 0.2;
+            rect1.height = "40px";
+            rect1.cornerRadius = 20;
+            rect1.color = "Orange";
+            rect1.thickness = 4;
+            rect1.background = "#0000bb";
+            advancedTexture.addControl(rect1);
+            rect1.horizontalAlignment = 0;
+            rect1.left = indexX;
+            rect1.verticalAlignment = 0;
+            rect1.top = indexY;
+            console.log(rect1);
+        
+            // engine.onResizeObservable.add(function () {
+            //     var xScale = canvas.width/base.x;
+            //     console.log(xScale);
+            // });
+        
+        
+            var label1 = new BABYLON.GUI.TextBlock();
+            label1.text = "part1 (spine)";
+            rect1.addControl(label1);
+        
+            var target1 = new BABYLON.GUI.Ellipse();
+            target1.width = "10px";
+            target1.height = "10px";
+            target1.color = "Orange";
+            target1.thickness = 2;
+            target1.background = "black";
+            advancedTexture.addControl(target1);
+            target1.linkWithMesh(guiTarget1);   
+        
+        
+            var line1 = new BABYLON.GUI.Line();
+            line1.lineWidth = 4;
+            line1.color = "Orange";
+            line1.x2 = 85;
+            line1.y2 = 0;
+            advancedTexture.addControl(line1);
+            line1.connectedControl = rect1;  
+            line1.linkWithMesh(guiTarget1);
+        
+        
+            var rect2 = new BABYLON.GUI.Rectangle();
+            rect2.width = 0.2;
+            rect2.height = "40px";
+            rect2.cornerRadius = 20;
+            rect2.color = "Orange";
+            rect2.thickness = 4;
+            rect2.background = "#0000bb";
+            advancedTexture.addControl(rect2);
+            rect2.horizontalAlignment = 0;
+            rect2.left = indexX;
+            rect2.verticalAlignment = 0;
+            rect2.top = indexY + spacingY;
+        
+            var label2 = new BABYLON.GUI.TextBlock();
+            label2.text = "hinge joint 1a (x)";
+            rect2.addControl(label2);
+        
+            var target2 = new BABYLON.GUI.Ellipse();
+            target2.width = "10px";
+            target2.height = "10px";
+            target2.color = "teal";
+            target2.thickness = 3;
+            target2.background = "black";
+            advancedTexture.addControl(target2);
+            target2.linkWithMesh(ghost1);   
+            target2.linkOffsetX = 0;
+            target2.linkOffsetY = -60;
+        
+            // scene.registerBeforeRender(function() {
+            //     target2._scaleY = 5 - (ghost1.position.y*-1);
+            // });
+        
+            var line2 = new BABYLON.GUI.Line();
+            line2.lineWidth = 4;
+            line2.color = "Orange";
+            line2.x2 = 85;
+            line2.y2 = 0;
+            advancedTexture.addControl(line2);
+            line2.linkWithMesh(ghost1);
+            line2.connectedControl = rect2;
+            line2.linkOffsetX = 0;
+            line2.linkOffsetY = -60;
+        
+            var rect3 = new BABYLON.GUI.Rectangle();
+            rect3.width = 0.2;
+            rect3.height = "40px";
+            rect3.cornerRadius = 20;
+            rect3.color = "Orange";
+            rect3.thickness = 4;
+            rect3.background = "#0000bb";
+            advancedTexture.addControl(rect3);
+            rect3.horizontalAlignment = 0;
+            rect3.left = indexX;
+            rect3.verticalAlignment = 0;
+            rect3.top = indexY + (spacingY*2);
+        
+            var label3 = new BABYLON.GUI.TextBlock();
+            label3.text = "ghost1";
+            rect3.addControl(label3);
+        
+            var target3 = new BABYLON.GUI.Ellipse();
+            target3.width = "10px";
+            target3.height = "10px";
+            target3.color = "Orange";
+            target3.thickness = 2;
+            target3.background = "black";
+            advancedTexture.addControl(target3);
+            target3.linkWithMesh(ghost1);   
+            target3.linkOffsetX = 0;
+            target3.linkOffsetY = 0;
+        
+            var line3 = new BABYLON.GUI.Line();
+            line3.lineWidth = 4;
+            line3.color = "Orange";
+            line3.x2 = 85;
+            line3.y2 = 0;
+            advancedTexture.addControl(line3);
+            line3.linkWithMesh(ghost1);
+            line3.connectedControl = rect3;  
+            line3.linkOffsetX = 0;
+            line3.linkOffsetY = 0;
+        
+            var rect4 = new BABYLON.GUI.Rectangle();
+            rect4.width = 0.2;
+            rect4.height = "40px";
+            rect4.cornerRadius = 20;
+            rect4.color = "Orange";
+            rect4.thickness = 4;
+            rect4.background = "#0000bb";
+            advancedTexture.addControl(rect4);
+            rect4.horizontalAlignment = 0;
+            rect4.left = indexX;
+            rect4.verticalAlignment = 0;
+            rect4.top = indexY + (spacingY*3);
+        
+            var label4 = new BABYLON.GUI.TextBlock();
+            label4.text = "hinge joint 1b (y)";
+            rect4.addControl(label4);
+        
+            var target4 = new BABYLON.GUI.Ellipse();
+            target4.width = "10px";
+            target4.height = "10px";
+            target4.color = "teal";
+            target4.thickness = 2;
+            target4.background = "black";
+            advancedTexture.addControl(target4);
+            target4.linkWithMesh(ghost1);   
+            target4.linkOffsetX = 0;
+            target4.linkOffsetY = 55;
+        
+            var line4 = new BABYLON.GUI.Line();
+            line4.lineWidth = 4;
+            line4.color = "Orange";
+            line4.x2 = 85;
+            line4.y2 = 0;
+            advancedTexture.addControl(line4);
+            line4.linkWithMesh(ghost1);
+            line4.connectedControl = rect4;  
+            line4.linkOffsetX = 0;
+            line4.linkOffsetY = 55;
+        
+            var rect5 = new BABYLON.GUI.Rectangle();
+            rect5.width = 0.2;
+            rect5.height = "40px";
+            rect5.cornerRadius = 20;
+            rect5.color = "Orange";
+            rect5.thickness = 4;
+            rect5.background = "#0000bb";
+            advancedTexture.addControl(rect5);
+            rect5.horizontalAlignment = 0;
+            rect5.left = indexX;
+            rect5.verticalAlignment = 0;
+            rect5.top = indexY + (spacingY*4);
+        
+            var label5 = new BABYLON.GUI.TextBlock();
+            label5.text = "ghost2";
+            rect5.addControl(label5);
+        
+            var target5 = new BABYLON.GUI.Ellipse();
+            target5.width = "10px";
+            target5.height = "10px";
+            target5.color = "Orange";
+            target5.thickness = 2;
+            target5.background = "black";
+            advancedTexture.addControl(target5);
+            target5.linkWithMesh(ghost2);   
+            target5.linkOffsetX = 0;
+            target5.linkOffsetY = 0;
+        
+            var line5 = new BABYLON.GUI.Line();
+            line5.lineWidth = 4;
+            line5.color = "Orange";
+            line5.x2 = 85;
+            line5.y2 = 0;
+            advancedTexture.addControl(line5);
+            line5.linkWithMesh(ghost2);
+            line5.connectedControl = rect5;  
+            line5.linkOffsetX = 0;
+            line5.linkOffsetY = 0;
+        
+            var rect6 = new BABYLON.GUI.Rectangle();
+            rect6.width = 0.2;
+            rect6.height = "40px";
+            rect6.cornerRadius = 20;
+            rect6.color = "Orange";
+            rect6.thickness = 4;
+            rect6.background = "#0000bb";
+            advancedTexture.addControl(rect6);
+            rect6.horizontalAlignment = 0;
+            rect6.left = indexX;
+            rect6.verticalAlignment = 0;
+            rect6.top = indexY + (spacingY*5);
+        
+            var label6 = new BABYLON.GUI.TextBlock();
+            label6.text = "hinge joint 1c (z)";
+            rect6.addControl(label6);
+        
+            var target6 = new BABYLON.GUI.Ellipse();
+            target6.width = "10px";
+            target6.height = "10px";
+            target6.color = "teal";
+            target6.thickness = 2;
+            target6.background = "black";
+            advancedTexture.addControl(target6);
+            target6.linkWithMesh(ghost2);   
+            target6.linkOffsetX = 0;
+            target6.linkOffsetY = 10;
+        
+            var line6 = new BABYLON.GUI.Line();
+            line6.lineWidth = 4;
+            line6.color = "Orange";
+            line6.x2 = 85;
+            line6.y2 = 0;
+            advancedTexture.addControl(line6);
+            line6.linkWithMesh(ghost2);
+            line6.connectedControl = rect6;  
+            line6.linkOffsetX = 0;
+            line6.linkOffsetY = 10;
+        
+            var rect7 = new BABYLON.GUI.Rectangle();
+            rect7.width = 0.2;
+            rect7.height = "40px";
+            rect7.cornerRadius = 20;
+            rect7.color = "Orange";
+            rect7.thickness = 4;
+            rect7.background = "#0000bb";
+            advancedTexture.addControl(rect7);
+            rect7.horizontalAlignment = 0;
+            rect7.left = indexX;
+            rect7.verticalAlignment = 0;
+            rect7.top = indexY + (spacingY*6);
+        
+            var label7 = new BABYLON.GUI.TextBlock();
+            label7.text = "part2 (femur)";
+            rect7.addControl(label7);
+        
+            var target7 = new BABYLON.GUI.Ellipse();
+            target7.width = "10px";
+            target7.height = "10px";
+            target7.color = "Orange";
+            target7.thickness = 2;
+            target7.background = "black";
+            advancedTexture.addControl(target7);
+            // target7.linkWithMesh(part2);   
+        
+            // target7.linkOffsetX = 0;
+            // target7.linkOffsetY = -90;
+        
+            var line7 = new BABYLON.GUI.Line();
+            line7.lineWidth = 4;
+            line7.color = "Orange";
+            line7.x2 = 85;
+            line7.y2 = 0;
+            advancedTexture.addControl(line7);
+            line7.connectedControl = rect7;  
+            // line7.linkWithMesh(part2);
+            // line7.linkOffsetX = 0;
+            // line7.linkOffsetY = -90;
+        
+            var meshCenterOffsetY = 3;
+            scene.beforeRender = function() {
+                target7.moveToVector3(part2.getAbsolutePosition().add(new BABYLON.Vector3(0, meshCenterOffsetY, 0)), scene);
+                line7.moveToVector3(part2.getAbsolutePosition().add(new BABYLON.Vector3(0, meshCenterOffsetY, 0)), scene);
+            }
+        
+        
+            // console.log(rect2);
+        
+            return scene;
+        };
+                window.initFunction = async function() {
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
