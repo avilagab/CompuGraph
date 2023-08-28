@@ -108,6 +108,11 @@
             BABYLON.ParticleHelper.CreateAsync("fire", scene).then((set) => {
                 set.start();
             });
+
+            // Smoke!
+            BABYLON.ParticleHelper.CreateAsync("smoke", scene).then((set) => {
+                set.start();
+            });
         
             return scene;
         
